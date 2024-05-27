@@ -1,0 +1,16 @@
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.wiocrm.mapper.UserMapper">
+    <resultMap id="UserResultMap" type="com.wiocrm.model.User">
+        <id column="ID" property="id"/>
+        <result column="PW" property="password"/>
+        <result column="CONFIRM_YN" property="confirmYn"/>
+        <result column="USERID" property="userId"/>
+    </resultMap>
+
+    <select id="findByUsername" parameterType="string" resultMap="UserResultMap">
+        SELECT ID, PW, CONFIRM_YN, USERID FROM N_TIPDW WHERE USERID = #{username}
+    </select>
+</mapper>
