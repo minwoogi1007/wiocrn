@@ -19,36 +19,17 @@ public class CustomAuthenticationFilter extends UsernamePasswordAuthenticationFi
     }
 
     @Override
-    public Authentication attemptAuthentication(HttpServletRequest request, HttpServletResponse response) {
-        String username = obtainUsername(request);
-        String password = obtainPassword(request);
+    public Authentication attemptAuthentication(HttpServletRequest request, HttpServletResponse response) throws AuthenticationException {
+        String username = request.getParameter("username");
+        String password = request.getParameter("password");
 
-        if (username == null) {
-            username = "";
-        }
-        if (password == null) {
-            password = "";
-        }
-        username = username.trim();
-
-        UsernamePasswordAuthenticationToken authRequest = new UsernamePasswordAuthenticationToken(username, password);
-
-        setDetails(request, authRequest);
-
-        return this.getAuthenticationManager().authenticate(authRequest);
+        UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(username, password);
+        return this.getAuthenticationManager().authenticate(authenticationToken);
     }
 
     @Override
     protected void successfulAuthentication(HttpServletRequest request, HttpServletResponse response, FilterChain chain, Authentication authResult) throws IOException, ServletException {
-        response.sendRedirect("/main");
-    }
-
-    @Override
-    protected void unsuccessfulAuthentication(HttpServletRequest request, HttpServletResponse response, AuthenticationException failed) throws IOException, ServletException {
-        if (failed.getMessage().contains("User not yet approved")) {
-            response.sendRedirect("/login?error=approval");
-        } else {
-            response.sendRedirect("/login?error=invalid");
-        }
+        super.successfulAuthentication(request, response, chain, authResult);
+        // 필요한 경우 추가 로직을 여기에 추가할 수 있습니다.
     }
 }
