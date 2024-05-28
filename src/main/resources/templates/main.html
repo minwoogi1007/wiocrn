@@ -7,5 +7,10 @@
 <body>
 <h1>메인 페이지</h1>
 <p>로그인이 성공적으로 완료되었습니다!</p>
+<div>
+  <p>Employee Number: <span th:text="${#httpServletRequest.session.getAttribute('tempUser').empNo}"></span></p>
+  <p>Employee Name: <span th:text="${#httpServletRequest.session.getAttribute('tempUser').empName}"></span></p>
+  <!-- 추가 정보들 -->
+</div>
 </body>
 </html>

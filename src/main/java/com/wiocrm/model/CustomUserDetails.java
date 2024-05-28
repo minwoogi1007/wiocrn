@@ -6,16 +6,20 @@ import org.springframework.security.core.userdetails.UserDetails;
 import java.util.Collection;
 
 public class CustomUserDetails implements UserDetails {
-
-    private User user;
+    private final User user;
 
     public CustomUserDetails(User user) {
         this.user = user;
     }
 
+    public User getUser() {
+        return user;
+    }
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return null; // 권한 정보를 추가로 구현할 수 있습니다.
+        // Return authorities if any
+        return null;
     }
 
     @Override
@@ -25,7 +29,7 @@ public class CustomUserDetails implements UserDetails {
 
     @Override
     public String getUsername() {
-        return user.getUserId();
+        return user.getUsername();
     }
 
     @Override
@@ -45,6 +49,6 @@ public class CustomUserDetails implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return "Y".equals(user.getConfirmYn());
+        return true;
     }
 }

@@ -9,8 +9,42 @@
         <result column="CONFIRM_YN" property="confirmYn"/>
         <result column="USERID" property="userId"/>
     </resultMap>
-
+    <resultMap id="TempUserResultMap" type="com.wiocrm.model.TempUser">
+        <id column="EMPNO" property="empNo"/>
+        <result column="EMP_NAME" property="empName"/>
+        <result column="SAUP_GUBN" property="saupGubn"/>
+        <result column="ID" property="id"/>
+        <result column="PW" property="pw"/>
+        <result column="CALL_NO" property="callNo"/>
+        <result column="DEPART" property="depart"/>
+        <result column="POSITION" property="position"/>
+        <result column="ZIP_NO" property="zipNo"/>
+        <result column="ADDR" property="addr"/>
+        <result column="TEL_NO" property="telNo"/>
+        <result column="MOBILE" property="mobile"/>
+        <result column="BIRTH_DAY" property="birthDay"/>
+        <result column="EMAIL" property="email"/>
+        <result column="MERRY_GUBN" property="merryGubn"/>
+        <result column="CALL_YN" property="callYn"/>
+        <result column="WORK_GUBN" property="workGubn"/>
+        <result column="IN_DATE" property="inDate"/>
+        <result column="IN_EMPNO" property="inEmpno"/>
+        <result column="UP_DATE" property="upDate"/>
+        <result column="UP_EMPNO" property="upEmpno"/>
+        <result column="ADDR2" property="addr2"/>
+        <result column="SUBID" property="subid"/>
+        <result column="CON_TIME" property="conTime"/>
+        <result column="USERID" property="userid"/>
+    </resultMap>
     <select id="findByUsername" parameterType="string" resultMap="UserResultMap">
         SELECT ID, PW, CONFIRM_YN, USERID FROM N_TIPDW WHERE USERID = #{username}
+    </select>
+
+    <select id="findTempUserByUserId" parameterType="string" resultMap="TempUserResultMap">
+        SELECT EMPNO, EMP_NAME, SAUP_GUBN, ID, PW, CALL_NO, DEPART, POSITION, ZIP_NO, ADDR, TEL_NO, MOBILE,
+               BIRTH_DAY, EMAIL, MERRY_GUBN, CALL_YN, WORK_GUBN, IN_DATE, IN_EMPNO, UP_DATE, UP_EMPNO,
+               ADDR2, SUBID, CON_TIME, USERID
+        FROM N_TEMP01
+        WHERE USERID = #{userid}
     </select>
 </mapper>

@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>대시보드</title>
+  <!-- AdminLTE CSS -->
+  <link rel="stylesheet" href="https://adminlte.io/themes/v3/plugins/fontawesome-free/css/all.min.css">
+  <link rel="stylesheet" href="https://adminlte.io/themes/v3/dist/css/adminlte.min.css">
+  <!-- jQuery -->
+  <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+  <!-- AdminLTE JS -->
+  <script src="https://adminlte.io/themes/v3/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script src="https://adminlte.io/themes/v3/dist/js/adminlte.min.js"></script>
+  <style>
+    body {
+      font-family: 'NanumSquare', sans-serif;
+    }
+
+    .content-wrapper {
+      min-height: calc(100vh - 57px - 60px);
+      padding-bottom: 60px;
+    }
+
+    footer {
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+      height: 60px;
+      background-color: #f8f9fa;
+      text-align: center;
+      line-height: 60px;
+    }
+
+    .navbar-toggler {
+      border: none;
+      background: transparent;
+      color: #000;
+      font-size: 24px;
+      margin-left: 10px;
+    }
+
+    .main-sidebar {
+      background-color: #f0f0f0; /* 밝은 배경 색상 */
+    }
+
+    .nav-sidebar .nav-link {
+      color: #555555; /* 텍스트 색상 */
+    }
+
+    .nav-sidebar .nav-link.active {
+      background-color: #4CAF50; /* 활성화된 항목 배경 색상 (밝은 초록색) */
+      color: #fff; /* 활성화된 항목 텍스트 색상 */
+      border-radius: 0.25rem; /* 둥근 모서리 */
+    }
+
+    .nav-sidebar .nav-link:hover {
+      background-color: #4CAF50; /* 호버된 항목 배경 색상 (밝은 초록색) */
+      color: #fff; /* 호버된 항목 텍스트 색상 */
+      border-radius: 0.25rem; /* 둥근 모서리 */
+    }
+
+  </style>
+</head>
+<body class="hold-transition sidebar-mini layout-fixed">
+<div class="wrapper">
+  <!-- Navbar -->
+  <nav class="main-header navbar navbar-expand navbar-white navbar-light">
+    <ul class="navbar-nav">
+      <li class="nav-item">
+        <a class="nav-link" data-widget="pushmenu" href="#" role="button"><i class="fas fa-bars"></i></a>
+      </li>
+      <li class="nav-item d-none d-sm-inline-block">
+        <a href="#" class="nav-link">WIO</a>
+      </li>
+    </ul>
+    <div class="collapse navbar-collapse">
+      <input class="form-control ml-3" type="text" placeholder="검색...">
+    </div>
+  </nav>
+  <!-- /.navbar -->
+
+  <!-- Main Sidebar Container -->
+  <aside class="main-sidebar sidebar-light-primary elevation-4" id="sidebar">
+    <div class="sidebar">
+      <nav class="mt-2">
+        <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
+          <li class="nav-item">
+            <a href="#" class="nav-link">
+              <i class="nav-icon fas fa-tachometer-alt"></i>
+              <p>
+                대시보드
+                <i class="right fas fa-angle-left"></i>
+              </p>
+            </a>
+            <ul class="nav nav-treeview">
+              <li class="nav-item">
+                <a href="#" class="nav-link" data-url="/default">
+                  <i class="far fa-circle nav-icon"></i>
+                  <p>기본</p>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a href="#" class="nav-link" data-url="/marketing">
+                  <i class="far fa-circle nav-icon"></i>
+                  <p>마케팅</p>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a href="#" class="nav-link" data-url="/social">
+                  <i class="far fa-circle nav-icon"></i>
+                  <p>소셜</p>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a href="#" class="nav-link" data-url="/ecommerce">
+                  <i class="far fa-circle nav-icon"></i>
+                  <p>전자상거래</p>
+                </a>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-item">
+            <a href="#" class="nav-link">
+              <i class="nav-icon fas fa-copy"></i>
+              <p>
+                페이지
+                <i class="fas fa-angle-left right"></i>
+              </p>
+            </a>
+            <ul class="nav nav-treeview">
+              <li class="nav-item">
+                <a href="#" class="nav-link" data-url="/page1">
+                  <i class="far fa-circle nav-icon"></i>
+                  <p>페이지 1</p>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a href="#" class="nav-link" data-url="/page2">
+                  <i class="far fa-circle nav-icon"></i>
+                  <p>페이지 2</p>
+                </a>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-item">
+            <a href="#" class="nav-link" data-url="/user-management">
+              <i class="nav-icon fas fa-users"></i>
+              <p>유저 관리</p>
+            </a>
+          </li>
+        </ul>
+      </nav>
+    </div>
+  </aside>
+
+  <!-- Content Wrapper. Contains page content -->
+  <div class="content-wrapper">
+    <!-- Content Header (Page header) -->
+    <div class="content-header">
+      <div class="container-fluid">
+        <div class="row mb-2">
+          <div class="col-sm-6">
+            <h1 class="m-0">대시보드</h1>
+          </div><!-- /.col -->
+        </div><!-- /.row -->
+      </div><!-- /.container-fluid -->
+    </div>
+    <!-- /.content-header -->
+
+    <!-- Main content -->
+    <div class="content" id="content-placeholder">
+      <!-- 기본 콘텐츠가 여기에 로드됩니다 -->
+    </div>
+    <!-- /.content -->
+  </div>
+  <!-- /.content-wrapper -->
+
+  <!-- Main Footer -->
+  <footer class="main-footer">
+    <strong>&copy; 2023 WIO. All rights reserved.</strong>
+  </footer>
+</div>
+<!-- ./wrapper -->
+
+<script>
+  $(document).ready(function () {
+    $('.nav-link[data-url]').click(function (e) {
+      e.preventDefault();
+      var url = $(this).data('url');
+      if (url) {
+        $('#content-placeholder').load(url);
+        $('.nav-link[data-url]').removeClass('active');
+        $(this).addClass('active');
+      }
+    });
+
+    // 기본 콘텐츠 로드 (예시로 기본 대시보드 로드)
+    $('#content-placeholder').load('/default');
+  });
+</script>
+</body>
+</html>

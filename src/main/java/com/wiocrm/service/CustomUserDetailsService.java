@@ -1,7 +1,9 @@
 package com.wiocrm.service;
 
 import com.wiocrm.model.User;
+import com.wiocrm.model.TempUser;
 import com.wiocrm.mapper.UserMapper;
+import com.wiocrm.model.CustomUserDetails;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -20,14 +22,15 @@ public class CustomUserDetailsService implements UserDetailsService {
         if (user == null) {
             throw new UsernameNotFoundException("User not found with username: " + username);
         }
-        return org.springframework.security.core.userdetails.User.withUsername(user.getUserId())
-                .password(user.getPassword())
-                .roles("USER")
-                .disabled(!"Y".equals(user.getConfirmYn()))
-                .build();
+        return new CustomUserDetails(user);
     }
 
+    // Existing methods for finding user and temp user
     public User findByUsername(String username) {
         return userMapper.findByUsername(username);
+    }
+
+    public TempUser findTempUserByUserId(String userId) {
+        return userMapper.findTempUserByUserId(userId);
     }
 }
