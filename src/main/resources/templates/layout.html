@@ -1,27 +1,22 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <head>
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <title>대시보드</title>
-  <!-- AdminLTE CSS -->
   <link rel="stylesheet" href="https://adminlte.io/themes/v3/plugins/fontawesome-free/css/all.min.css">
   <link rel="stylesheet" href="https://adminlte.io/themes/v3/dist/css/adminlte.min.css">
-  <!-- jQuery -->
   <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
-  <!-- AdminLTE JS -->
   <script src="https://adminlte.io/themes/v3/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
   <script src="https://adminlte.io/themes/v3/dist/js/adminlte.min.js"></script>
   <style>
     body {
       font-family: 'NanumSquare', sans-serif;
     }
-
     .content-wrapper {
       min-height: calc(100vh - 57px - 60px);
       padding-bottom: 60px;
     }
-
     footer {
       position: fixed;
       bottom: 0;
@@ -31,7 +26,6 @@
       text-align: center;
       line-height: 60px;
     }
-
     .navbar-toggler {
       border: none;
       background: transparent;
@@ -39,153 +33,212 @@
       font-size: 24px;
       margin-left: 10px;
     }
-
     .main-sidebar {
-      background-color: #f0f0f0; /* 밝은 배경 색상 */
+      background-color: #2d3e50;
     }
-
     .nav-sidebar .nav-link {
-      color: #555555; /* 텍스트 색상 */
+      color: #9aa0ac;
+      font-size: 14px;
+      font-weight: normal;
     }
-
     .nav-sidebar .nav-link.active {
-      background-color: #4CAF50; /* 활성화된 항목 배경 색상 (밝은 초록색) */
-      color: #fff; /* 활성화된 항목 텍스트 색상 */
-      border-radius: 0.25rem; /* 둥근 모서리 */
+      background-color: #27343b;
+      color: #fff;
+      border-radius: 0.25rem;
+      font-weight: bold;
     }
-
     .nav-sidebar .nav-link:hover {
-      background-color: #4CAF50; /* 호버된 항목 배경 색상 (밝은 초록색) */
-      color: #fff; /* 호버된 항목 텍스트 색상 */
-      border-radius: 0.25rem; /* 둥근 모서리 */
+      background-color: #27343b;
+      color: #fff;
+      border-radius: 0.25rem;
     }
-
+    .top-menu .nav-icon {
+      color: #9aa0ac;
+      font-size: 18px;
+    }
+    .nav-sidebar .nav-link p {
+      margin-left: 5px;
+    }
+    .nav-treeview > .nav-item > .nav-link {
+      margin-left: 15px; /* 중메뉴 들여쓰기 */
+      font-size: 13px; /* 중메뉴 폰트 사이즈 */
+    }
+    .nav-treeview .nav-treeview > .nav-item > .nav-link {
+      margin-left: 20px; /* 소메뉴 들여쓰기 */
+      font-size: 12px; /* 소메뉴 폰트 사이즈 */
+    }
   </style>
 </head>
 <body class="hold-transition sidebar-mini layout-fixed">
 <div class="wrapper">
-  <!-- Navbar -->
-  <nav class="main-header navbar navbar-expand navbar-white navbar-light">
-    <ul class="navbar-nav">
-      <li class="nav-item">
-        <a class="nav-link" data-widget="pushmenu" href="#" role="button"><i class="fas fa-bars"></i></a>
-      </li>
-      <li class="nav-item d-none d-sm-inline-block">
-        <a href="#" class="nav-link">WIO</a>
-      </li>
-    </ul>
-    <div class="collapse navbar-collapse">
-      <input class="form-control ml-3" type="text" placeholder="검색...">
-    </div>
-  </nav>
-  <!-- /.navbar -->
 
-  <!-- Main Sidebar Container -->
-  <aside class="main-sidebar sidebar-light-primary elevation-4" id="sidebar">
+  <div th:replace="~{header :: header}"></div>
+
+  <aside class="main-sidebar sidebar-dark-primary elevation-4" id="sidebar">
     <div class="sidebar">
       <nav class="mt-2">
-        <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
-          <li class="nav-item">
-            <a href="#" class="nav-link">
-              <i class="nav-icon fas fa-tachometer-alt"></i>
-              <p>
-                대시보드
-                <i class="right fas fa-angle-left"></i>
-              </p>
-            </a>
-            <ul class="nav nav-treeview">
-              <li class="nav-item">
-                <a href="#" class="nav-link" data-url="/default">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>기본</p>
-                </a>
-              </li>
-              <li class="nav-item">
-                <a href="#" class="nav-link" data-url="/marketing">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>마케팅</p>
-                </a>
-              </li>
-              <li class="nav-item">
-                <a href="#" class="nav-link" data-url="/social">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>소셜</p>
-                </a>
-              </li>
-              <li class="nav-item">
-                <a href="#" class="nav-link" data-url="/ecommerce">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>전자상거래</p>
-                </a>
-              </li>
-            </ul>
-          </li>
-          <li class="nav-item">
-            <a href="#" class="nav-link">
-              <i class="nav-icon fas fa-copy"></i>
-              <p>
-                페이지
-                <i class="fas fa-angle-left right"></i>
-              </p>
-            </a>
-            <ul class="nav nav-treeview">
-              <li class="nav-item">
-                <a href="#" class="nav-link" data-url="/page1">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>페이지 1</p>
-                </a>
-              </li>
-              <li class="nav-item">
-                <a href="#" class="nav-link" data-url="/page2">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>페이지 2</p>
-                </a>
-              </li>
-            </ul>
-          </li>
-          <li class="nav-item">
-            <a href="#" class="nav-link" data-url="/user-management">
-              <i class="nav-icon fas fa-users"></i>
-              <p>유저 관리</p>
-            </a>
-          </li>
+        <ul id="dynamic-menu" class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
+          <!-- Dynamic menu will be appended here -->
         </ul>
       </nav>
     </div>
   </aside>
 
-  <!-- Content Wrapper. Contains page content -->
   <div class="content-wrapper">
-    <!-- Content Header (Page header) -->
-    <div class="content-header">
-      <div class="container-fluid">
-        <div class="row mb-2">
-          <div class="col-sm-6">
-            <h1 class="m-0">대시보드</h1>
-          </div><!-- /.col -->
-        </div><!-- /.row -->
-      </div><!-- /.container-fluid -->
-    </div>
-    <!-- /.content-header -->
 
-    <!-- Main content -->
+
     <div class="content" id="content-placeholder">
       <!-- 기본 콘텐츠가 여기에 로드됩니다 -->
     </div>
-    <!-- /.content -->
   </div>
-  <!-- /.content-wrapper -->
 
-  <!-- Main Footer -->
   <footer class="main-footer">
-    <strong>&copy; 2023 WIO. All rights reserved.</strong>
+    <strong>&copy; 2024 WIO. All rights reserved.</strong>
   </footer>
 </div>
-<!-- ./wrapper -->
 
-<script>
+<script th:inline="javascript">
+  /*<![CDATA[*/
+  var menuData = /*[[${menuListJson}]]*/ '[]';
+  /*]]>*/
+
   $(document).ready(function () {
-    $('.nav-link[data-url]').click(function (e) {
+    var iconMapping = {
+      "관리자": "fas fa-user-shield",
+      "기본정보": "fas fa-users",
+      "시스템": "fas fa-cog",
+      "마일리지": "fas fa-project-diagram",
+      "통계": "fas fa-chart-line",
+      "프로젝트": "fas fa-tachometer-alt",
+      "고객관리": "fas fa-users",
+      "상담관리": "fas fa-phone",
+      "게시판": "fas fa-clipboard",
+      // 추가적인 매핑을 여기서 정의
+    };
+
+    function getIconClass(menuName) {
+      return iconMapping[menuName] || "fas fa-arrow-right";  // 기본 아이콘
+    }
+
+    function createMenu(menuData) {
+      console.log('Menu Data:', menuData);  // 데이터가 제대로 들어오는지 확인
+
+      var menuHtml = '';
+      var topMenus = menuData.filter(function(menu) {
+        //console.log('Filtering Top Menus:', menu);  // 최상위 메뉴 필터링
+        return menu.MENU_REF === 0;  // '0'이 아니라 숫자 0을 사용
+      });
+
+      //console.log('Top Menus:', topMenus);  // 필터링된 최상위 메뉴 확인
+
+      topMenus.forEach(function(topMenu) {
+        //console.log('Processing Top Menu:', topMenu);  // 각 최상위 메뉴 처리
+
+        menuHtml += '<li class="nav-item has-treeview">' +
+                '<a href="#" class="nav-link top-menu">' +
+                '<i class="nav-icon ' + getIconClass(topMenu.MENU_NM) + '"></i>' +
+                '<p>' + topMenu.MENU_NM + '<i class="right fas fa-angle-left"></i></p>' +
+                '</a>' +
+                '<ul class="nav nav-treeview">';
+
+        var midMenus = menuData.filter(function(menu) {
+          //console.log('Filtering Mid Menus for', topMenu.MENU_CD, ':', menu);  // 중간 메뉴 필터링
+          return menu.MENU_REF === topMenu.MENU_CD;
+        });
+
+        //console.log('Mid Menus for', topMenu.MENU_CD, ':', midMenus);  // 중간 메뉴 확인
+
+        midMenus.forEach(function(midMenu) {
+          //console.log('Processing Mid Menu:', midMenu);  // 각 중간 메뉴 처리
+
+          menuHtml += '<li class="nav-item has-treeview">' +
+                  '<a href="#" class="nav-link mid-menu">' +
+                  '<p>' + midMenu.MENU_NM + '<i class="right fas fa-angle-left"></i></p>' +
+                  '</a>' +
+                  '<ul class="nav nav-treeview">';
+
+          var lowMenus = menuData.filter(function(menu) {
+            //console.log('Filtering Low Menus for', midMenu.MENU_CD, ':', menu);  // 하위 메뉴 필터링
+            return menu.MENU_REF === midMenu.MENU_CD;
+          });
+
+          //console.log('Low Menus for', midMenu.MENU_CD, ':', lowMenus);  // 하위 메뉴 확인
+
+          lowMenus.forEach(function(lowMenu) {
+            //console.log('Processing Low Menu:', lowMenu);  // 각 하위 메뉴 처리
+
+            menuHtml += '<li class="nav-item">' +
+                    '<a href="#" class="nav-link low-menu" data-url="' + lowMenu.PROG_NM + '">' +
+                    '<p>' + lowMenu.MENU_NM + '</p>' +
+                    '</a>' +
+                    '</li>';
+          });
+
+          menuHtml += '</ul>' +
+                  '</li>';
+        });
+
+        menuHtml += '</ul>' +
+                '</li>';
+      });
+
+      //console.log('Generated Menu HTML:', menuHtml);  // 생성된 HTML 확인
+      $('#dynamic-menu').html(menuHtml);
+    }
+
+    $('#content-placeholder').load('/dashboard');  // 기본 경로 로드
+
+    try {
+      var parsedMenuData = JSON.parse(menuData);
+      createMenu(parsedMenuData);
+    } catch (e) {
+      console.error('Failed to parse menu data:', e);  // JSON 파싱 오류 확인
+    }
+
+    // 대메뉴 클릭 시 다른 대메뉴 닫기
+    $(document).on('click', '.top-menu', function (e) {
+      e.preventDefault();
+      var $this = $(this);
+      var $parent = $this.closest('.has-treeview');
+      var $siblings = $parent.siblings();
+
+      if ($parent.hasClass('menu-open')) {
+        $parent.removeClass('menu-open');
+        $this.next('.nav-treeview').slideUp();
+      } else {
+        // 다른 모든 대메뉴 닫기
+        $siblings.removeClass('menu-open');
+        $siblings.find('.nav-treeview').slideUp();
+
+        // 현재 대메뉴 열기
+        $parent.addClass('menu-open');
+        $this.next('.nav-treeview').slideDown();
+      }
+    });
+
+    // 중메뉴 클릭 시 다른 중메뉴 닫기
+    $(document).on('click', '.mid-menu', function (e) {
+      e.preventDefault();
+      var $this = $(this);
+      var $parent = $this.closest('.has-treeview');
+      var $siblings = $parent.siblings();
+
+      if ($parent.hasClass('menu-open')) {
+        $parent.removeClass('menu-open');
+        $this.next('.nav-treeview').slideUp();
+      } else {
+        // 현재 대메뉴 내 다른 중메뉴 닫기
+        $siblings.removeClass('menu-open');
+        $siblings.find('.nav-treeview').slideUp();
+
+        // 현재 중메뉴 열기
+        $parent.addClass('menu-open');
+        $this.next('.nav-treeview').slideDown();
+      }
+    });
+
+    // 소메뉴 클릭 시 컨텐츠 로드 및 활성화
+    $(document).on('click', '.nav-link[data-url]', function (e) {
       e.preventDefault();
       var url = $(this).data('url');
       if (url) {
@@ -194,10 +247,8 @@
         $(this).addClass('active');
       }
     });
-
-    // 기본 콘텐츠 로드 (예시로 기본 대시보드 로드)
-    $('#content-placeholder').load('/default');
   });
 </script>
+
 </body>
 </html>

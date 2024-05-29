@@ -4,22 +4,29 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 
 public class CustomUserDetails implements UserDetails {
     private final User user;
+    private final List<Map<String, Object>> menuList;
 
-    public CustomUserDetails(User user) {
+    public CustomUserDetails(User user, List<Map<String, Object>> menuList) {
         this.user = user;
+        this.menuList = menuList;
     }
 
     public User getUser() {
         return user;
     }
 
+    public List<Map<String, Object>> getMenuList() {
+        return menuList;
+    }
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        // Return authorities if any
-        return null;
+        return user.getAuthorities();
     }
 
     @Override
@@ -34,21 +41,21 @@ public class CustomUserDetails implements UserDetails {
 
     @Override
     public boolean isAccountNonExpired() {
-        return true;
+        return user.isAccountNonExpired();
     }
 
     @Override
     public boolean isAccountNonLocked() {
-        return true;
+        return user.isAccountNonLocked();
     }
 
     @Override
     public boolean isCredentialsNonExpired() {
-        return true;
+        return user.isCredentialsNonExpired();
     }
 
     @Override
     public boolean isEnabled() {
-        return true;
+        return user.isEnabled();
     }
 }

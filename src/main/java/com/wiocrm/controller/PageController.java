@@ -1,12 +1,20 @@
 package com.wiocrm.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.wiocrm.model.UserInfo;
+import com.wiocrm.service.CustomUserDetailsService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpSession;
+
 @Controller
 public class PageController {
-
+    @Autowired
+    private CustomUserDetailsService userDetailsService;
     @GetMapping("/dashboard")
     public String dashboard(Model model) {
         return "fragments/dashboard :: content";
@@ -36,10 +44,20 @@ public class PageController {
     public String ewallet(Model model) {
         return "fragments/ewallet :: content";
     }
+    @GetMapping("/statCall")
+    public String statCall(Model model) {
+        return "fragments/statCall :: content";
+    }
 
     @GetMapping("/layout")
-    public String layout(Model model) {
+    public String layout(HttpServletRequest request, HttpSession session, Model model) {
         model.addAttribute("content", "fragments/dashboard :: content");
+        String menuListJson = (String) session.getAttribute("menuListJson");
+
+        UserInfo userInfo = userDetailsService.findUserInfo(request);
+
+        model.addAttribute("userInfo", userInfo != null ? userInfo.getCALL_NO() : "N/A");
+        model.addAttribute("menuListJson", menuListJson);
         return "layout";
     }
 }

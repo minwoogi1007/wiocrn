@@ -1,5 +1,6 @@
 package com.wiocrm.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wiocrm.model.CustomUserDetails;
 import com.wiocrm.model.User;
 import com.wiocrm.service.CustomUserDetailsService;
@@ -16,10 +17,15 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 
+import javax.servlet.http.HttpSession;
+import java.util.List;
+import java.util.Map;
+
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig extends WebSecurityConfigurerAdapter {
-
+    @Autowired
+    private HttpSession httpSession;
     @Autowired
     private CustomUserDetailsService userDetailsService;
 
@@ -74,7 +80,16 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 System.out.println("Redirecting to /login?error=rejected");
                 response.sendRedirect("/login?error=rejected");
             } else {
-                System.out.println("Redirecting to /layout");
+                // 메뉴 데이터를 JSON 문자열로 변환하여 세션에 저장
+                List<Map<String, Object>> menuData = userDetailsService.getUserMenu(user.getUserId());
+                ObjectMapper mapper = new ObjectMapper();
+                String menuListJson = mapper.writeValueAsString(menuData);
+
+                HttpSession session = request.getSession();
+                session.setAttribute("user", user);
+                System.out.println("user============================================================"+user.getUserId());
+                session.setAttribute("menuListJson", menuListJson);
+
                 response.sendRedirect("/layout");
             }
         };

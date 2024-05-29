@@ -1,11 +1,139 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <head>
+  <meta charset="UTF-8">
   <title>Dashboard</title>
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f7f7f7;
+      margin: 0;
+      padding: 0;
+    }
+    .container-fluid {
+      padding: 20px;
+    }
+    .card {
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      border: none;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+    .card .card-body {
+      padding: 20px;
+    }
+    .small-text {
+      font-size: 0.8em;
+    }
+    .chart {
+      height: 200px;
+    }
+  </style>
 </head>
 <body>
-<div th:fragment="content" id="dashboard-content" >
-  <h1>Welcome to the Dashboard</h1>
+<div th:fragment="content" id="dashboard-content">
+  <div class="content-header">
+    <div class="container-fluid">
+      <div class="row mb-2">
+        <div class="col-sm-6">
+          <h1 class="m-0">DASH BOARD</h1>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="container-fluid">
+    <div class="row">
+      <div class="col-md-3">
+        <div class="card">
+          <div class="card-body">
+            <h5>Customers</h5>
+            <h3>36,254</h3>
+            <p class="small-text text-success"><i class="fas fa-arrow-up"></i> 5.27% Since last month</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card">
+          <div class="card-body">
+            <h5>Orders</h5>
+            <h3>5,543</h5>
+              <p class="small-text text-danger"><i class="fas fa-arrow-down"></i> 1.08% Since last month</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card">
+          <div class="card-body">
+            <h5>Revenue</h5>
+            <h3>$6,254</h3>
+            <p class="small-text text-danger"><i class="fas fa-arrow-down"></i> 7.00% Since last month</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card">
+          <div class="card-body">
+            <h5>Growth</h5>
+            <h3>+ 30.56%</h3>
+            <p class="small-text text-success"><i class="fas fa-arrow-up"></i> 4.87% Since last month</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-md-6">
+        <div class="card">
+          <div class="card-body">
+            <h5>Revenue</h5>
+            <div class="row">
+              <div class="col-md-6">
+                <h6>Current Week</h6>
+                <h3>$58,254</h3>
+              </div>
+              <div class="col-md-6">
+                <h6>Previous Week</h6>
+                <h3>$69,524</h3>
+              </div>
+            </div>
+            <div class="chart bg-light"></div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="card">
+          <div class="card-body">
+            <h5>Revenue by Location</h5>
+            <div class="chart bg-light"></div>
+            <div class="row mt-3">
+              <div class="col-md-6">
+                <p>New York</p>
+                <div class="progress">
+                  <div class="progress-bar" style="width:72%">72k</div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <p>San Francisco</p>
+                <div class="progress">
+                  <div class="progress-bar" style="width:39%">39k</div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <p>Sydney</p>
+                <div class="progress">
+                  <div class="progress-bar" style="width:25%">25k</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 </body>
 </html>

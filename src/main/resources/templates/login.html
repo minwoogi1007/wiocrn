@@ -3,17 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <title>로그인</title>
-  <script>
-    function showError(message) {
-      alert(message);
-    }
-  </script>
+  <!-- 호환성을 위한 메타 태그 -->
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- IE용 CSS 폴리필 -->
   <style>
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      display: -ms-flexbox;
       display: flex;
-      justify-content: center;
+      -ms-flex-align: center;
       align-items: center;
+      -ms-flex-pack: center;
+      justify-content: center;
       height: 100vh;
       background-color: #f7f7f7;
       margin: 0;
@@ -87,5 +89,12 @@
     </script>
   </div>
 </div>
+
+<!-- IE용 JavaScript 폴리필 -->
+<script>
+  function showError(message) {
+    alert(message);
+  }
+</script>
 </body>
 </html>

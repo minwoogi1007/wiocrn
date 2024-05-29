@@ -47,4 +47,130 @@
         FROM N_TEMP01
         WHERE USERID = #{userid}
     </select>
+
+    <select id="getUserMenu" resultType="map">
+        SELECT * FROM (
+                          SELECT DISTINCT
+                              MENU_CD
+                                        ,MENU_NM
+                                        ,PROG_NM
+                                        ,MENU_REF
+                                        ,MENU_IDX
+                                        ,MENU_DIV
+                                        ,PROG_TP
+                                        ,USE_YN
+                                        ,SEQ
+                                        ,HMENU_CD
+                          FROM (
+                                   WITH DETAIL_MENU AS (SELECT  HM.MENU_CD AS HMENU_CD
+                                                             , MM.MENU_CD AS MMENU_CD
+                                                             , DM.MENU_CD AS DMENU_CD
+                                                        FROM  N_WMENU HM
+                                                           , N_WMENU DM
+                                                           , N_WMENU MM
+                                                           , N_WMENU_USER MU
+                                                           , N_TEMP01 EP
+                                                        WHERE HM.MENU_CD = MM.MENU_REF AND HM.USE_YN = 'Y'
+                                                          AND MM.MENU_CD = DM.MENU_REF AND MM.USE_YN = 'Y'
+                                                          AND DM.MENU_CD = MU.MENU_CD AND DM.USE_YN = 'Y'
+                                                          AND MU.USER_ID = EP.POSITION
+                                                          AND MU.AUTHORITY = 'Y'
+                                                          AND EP.USERID = #{username}
+                                                        UNION ALL SELECT  HM.MENU_CD AS HMENU_CD
+                                                                       , MM.MENU_CD AS MMENU_CD
+                                                                       , DM.MENU_CD AS DMENU_CD
+                                                        FROM  N_WMENU HM
+                                                           , N_WMENU DM
+                                                           , N_WMENU MM
+                                                           , N_WMENU_USER MU
+                                                           , N_TCNT01_EMP EP
+                                                        WHERE HM.MENU_CD = MM.MENU_REF AND HM.USE_YN = 'Y'
+                                                          AND MM.MENU_CD = DM.MENU_REF AND MM.USE_YN = 'Y'
+                                                          AND DM.MENU_CD = MU.MENU_CD AND DM.USE_YN = 'Y'
+                                                          AND MU.USER_ID = EP.CUST_CODE
+                                                          AND MU.AUTHORITY = 'Y'
+                                                          AND EP.ID = #{username}
+                                   )
+                                   SELECT * FROM (
+                                                     SELECT A.MENU_CD
+                                                          , A.MENU_NM
+                                                          , NVL(A.PROG_NM, ' ') PROG_NM
+                                                          , A.MENU_REF
+                                                          , A.MENU_IDX
+                                                          , A.MENU_DIV
+                                                          , A.PROG_TP
+                                                          , A.USE_YN
+                                                          , 1 AS SEQ
+                                                          , 0 AS HMENU_CD
+                                                     FROM N_WMENU A
+                                                     WHERE A.MENU_CD IN (SELECT HMENU_CD FROM DETAIL_MENU GROUP BY HMENU_CD)
+                                                     UNION ALL
+                                                     SELECT A.MENU_CD
+                                                          , A.MENU_NM
+                                                          , NVL(A.PROG_NM, ' ') PROG_NM
+                                                          , A.MENU_REF
+                                                          , A.MENU_IDX
+                                                          , A.MENU_DIV
+                                                          , A.PROG_TP
+                                                          , A.USE_YN
+                                                          , 2 AS SEQ
+                                                          , 0 AS HMENU_CD
+                                                     FROM N_WMENU A
+                                                     WHERE A.MENU_CD IN (SELECT MMENU_CD FROM DETAIL_MENU GROUP BY MMENU_CD)
+                                                     UNION ALL
+                                                     SELECT A.MENU_CD
+                                                          , A.MENU_NM
+                                                          , NVL(A.PROG_NM, ' ') PROG_NM
+                                                          , A.MENU_REF
+                                                          , A.MENU_IDX
+                                                          , A.MENU_DIV
+                                                          , A.PROG_TP
+                                                          , A.USE_YN
+                                                          , 3 AS SEQ
+                                                          , C.MENU_CD AS HMENU_CD
+                                                     FROM N_WMENU A
+                                                        , N_WMENU B
+                                                        , N_WMENU C
+                                                     WHERE A.MENU_CD IN (SELECT DMENU_CD FROM DETAIL_MENU GROUP BY DMENU_CD)
+                                                       AND A.MENU_REF =  B.MENU_CD AND B.MENU_REF = C.MENU_CD
+                                                 )
+                               )
+                          WHERE MENU_CD IS NOT NULL
+                              CONNECT BY nocycle MENU_REF = PRIOR MENU_CD
+                          ORDER SIBLINGS BY SEQ, MENU_IDX
+                      )
+        WHERE 1=1
+            START WITH MENU_DIV ='M'
+        CONNECT BY PRIOR MENU_CD = MENU_REF
+    </select>
+
+    <select id="findUserInfo"  resultType="com.wiocrm.model.UserInfo">
+        SELECT
+            EMPNO,EMP_NAME,
+            SAUP_GUBN,
+            ID,
+            PW,
+            CALL_NO,
+            DEPART,
+            POSITION,
+            ZIP_NO,
+            ADDR,
+            TEL_NO,
+            MOBILE,
+            BIRTH_DAY,
+            EMAIL,
+            MERRY_GUBN,
+            CALL_YN,
+            WORK_GUBN,
+            IN_DATE,
+            IN_EMPNO,
+            UP_DATE,
+            UP_EMPNO,
+            ADDR2,
+            SUBID,
+            CON_TIME,
+            USERID
+        FROM n_temp01
+          where USERID= #{username}
+    </select>
 </mapper>
