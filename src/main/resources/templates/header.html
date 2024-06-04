@@ -7,6 +7,11 @@
     }
     table th {
       background-color: #efefef;
+    }/* ìˆ¨ê¹€ ìŠ¤íƒ€ì¼ ì¶”ê°€ */
+    .hidden {
+      position: absolute;
+      left: -9999px;
+      top: -9999px;
     }
   </style>
   <script th:inline="javascript">
@@ -16,13 +21,49 @@
     /*]]>*/
   </script>
 
+  <script id="OnSendRingEvent" for="EventClientCtrl" event="SendRingEvent(bstrRingEvent)">
+
+    parseMsg(bstrRingEvent);
+  </script>
+
+  <script id="OnSendLoginResultEvent" for="EventClientCtrl" event="SendLoginResultEvent(bstrLoginResult)">
+    parseMsg(bstrLoginResult);
+  </script>
+
+
+
+  <script id="OnSendChannelListEvent" for="EventClientCtrl" event="SendChannelListEvent(bstrChannelList)">
+
+    if(call_UinqId == ""){
+      parseMsg(bstrChannelList,"HAND");
+    }else{
+      parseMsg(bstrChannelList);
+    }
+    //ì „í™”ì—°ê²°ì‹œ
+    document.getElementById("stateMsg").innerHTML="í†µí™”ì¤‘";
+
+  </script>
+  <script id="OnSendChannelOutEvent" for="EventClientCtrl" event="SendChannelOutEvent(bstrChannelOut)">
+    giCallStatus ='0';
+    parseMsg(bstrChannelOut);
+  </script>
+
+
+  <script id="OnSendNetworkErrorEvent" for="EventClientCtrl" event="SendNetworkErrorEvent()">
+    document.all.EventClientCtrl.DisconnectServer();
+    //alert("ë„¤íŠ¸ì› ì˜¤ë¥˜ë¡œ ì¸í•œ ocx ì„œë²„ì— ì—°ê²°í•  ìˆ˜ ì—†ìŠµë‹ˆë‹¤. \n ê´€ë¦¬ìì—ê²Œ ë¬¸ì˜ í•˜ì„¸ìš”");
+    reJoin();
+  </script>
+
+
+
   <nav class="main-header navbar navbar-expand navbar-white navbar-light">
     <ul class="navbar-nav">
       <li class="nav-item">
         <a class="nav-link" data-widget="pushmenu" href="#" role="button"><i class="fas fa-bars"></i></a>
       </li>
       <li class="nav-item d-none d-sm-inline-block">
-        <a href="#" class="nav-link">WIO</a><span class="call_font"> ³»¼±:<span th:text="${userInfo}"></span><span id="connectionStatus"></span></span>
+        <a href="#" class="nav-link">WIO</a><span class="call_font"> ë‚´ì„ :<span th:text="${userInfo}"></span><span id="connectionStatus"></span></span>
       </li>
     </ul>
     <form name="iform" id="iform" style="margin:0;padding:0;">
@@ -31,10 +72,33 @@
       <textarea style="width:100%;height:350px;" name="recvlog" id="recvlog"></textarea>
       <div name="dispinfo" id="dispinfo" style="width:100%;"></div>
     </form>
+    <div class="row mt-3">
+      <div class="col-12">
+        <div class="d-flex justify-content-between">
+          <button id='send_b1' class="btn btn-danger" style="display:none;" onClick="hangup()">ëŠê¸°</button>
+          <button id='send_b2' class="btn btn-warning" style="display:none;" onClick="hold()">ë³´ë¥˜</button>
+          <button id='send_b3' class="btn btn-success" style="display:none;" onClick="unhold()">ì¬ì—°ê²°</button>
+          <button id='init_b1' class="btn btn-primary" style="display:none;" onClick="call()">ì „í™”ê±¸ê¸°</button>
+          <button id='init_b2' class="btn btn-secondary" style="display:none;" onClick="pickup()">ë‹¹ê²¨ë°›ê¸°</button>
+          <button id='init_b3' class="btn btn-info" style="display:none;" onClick="p_answer()">ì „í™”ë°›ê¸°</button>
+          <button id='init_b4' class="btn btn-dark" style="display:none;" onClick="hangup()">ìˆ˜ì‹ ê±°ë¶€</button>
+          <button id='init_b5' class="btn btn-light" style="display:none;" onClick="doConsReg()">ìƒë‹´ë“±ë¡</button>
+          <button id='init_b7' class="btn btn-warning" style="display:none;" onClick="outCall()">outCall</button>
+          <span id='_timer' class='call_font'></span>
+        </div>
+      </div>
+    </div>
   </nav>
-  <!-- Additional body content from dcs_lgapi.html -->
-
+  <div class="hidden">
+    <script>
+      var OutStr = "<object ID='EventClientCtrl' WIDTH=100 HEIGHT=100 CLASSID='CLSID:86019F2F-2899-4C4C-A6FE-24CFF7CD6D4C' codebase='/activeXLGUBaseOpenApi_1.0.1.21.cab#version=1,0,1,21'></object>";
+      document.writeln(OutStr);
+    </script>
+  </div>
   <script>
+
+
+
     var ISCON = 0;
     var ISCALL = 0;
     var STAT = 0;
@@ -47,32 +111,70 @@
 
     function initializeAndConnect() {
       READY = 1;
-      console.log("initializeAndConnect È£ÃâµÊ");
-      document.getElementById('connectionStatus').innerText = "Á¢¼Ó ½Ãµµ Áß...";
+      console.log("initializeAndConnect í˜¸ì¶œë¨");
+      document.getElementById('connectionStatus').innerText = "ì ‘ì† ì‹œë„ ì¤‘...";
       sConnect();
     }
 
     function sConnect(ctype) {
-      console.log("sConnect È£ÃâµÊ");
+      console.log("sConnect í˜¸ì¶œë¨");
       if (!READY) {
-        alert("ÄÁÆ®·ÑÀÌ ½ÃÀÛµÇÁö ¸øÇß½À´Ï´Ù.");
-        document.getElementById('connectionStatus').innerText = "Á¢¼Ó ¾ÈµÊ";
+        alert("ì»¨íŠ¸ë¡¤ì´ ì‹œì‘ë˜ì§€ ëª»í–ˆìŠµë‹ˆë‹¤.");
+        document.getElementById('connectionStatus').innerText = "ì ‘ì† ì•ˆë¨";
         return false;
       }
       if (ISCON) {
-        console.log("±âÁ¸ ¿¬°á ÇØÁ¦ ½Ãµµ");
+        console.log("ê¸°ì¡´ ì—°ê²° í•´ì œ ì‹œë„");
         document.getElementById('EventClientCtrl').DisconnectServer();
         ISCON = 0;
       } else {
-        console.log("¼­¹ö¿¡ ·Î±×ÀÎ ½Ãµµ");
-        var strServerIP = "203.233.92.82"; // ¼­¹ö IP °íÁ¤
+        console.log("ì„œë²„ì— ë¡œê·¸ì¸ ì‹œë„");
+        console.log(strLoginID);
+        console.log(strLoginPwd);
+        var strServerIP = "203.233.92.82";
         document.getElementById('EventClientCtrl').LoginServer(strLoginID, strLoginPwd, strServerIP);
+
       }
+      CheckConnect();
       return false;
     }
 
+    function CheckConnect() {
+      if (document.getElementById('EventClientCtrl') != null) {
+        var bConnect = document.getElementById('EventClientCtrl').IsConnected();
+        console.log("CheckConnect í˜¸ì¶œë¨: " + bConnect);
+
+        if (bConnect) document.getElementById("connectionStatus").innerHTML = "ëŒ€ê¸°ì¤‘";
+        else document.getElementById("connectionStatus").innerHTML = "ì—°ê²°ì‹¤íŒ¨";
+      }
+    }
+
+    function BBS_LOGIN() {
+      call_btn_cont('R');
+    }
+
+    function call_btn_cont(_Arg) {
+      switch (_Arg) {
+        case "CS":
+          document.getElementById("send_b1").style.display = "inline";
+          document.getElementById("send_b2").style.display = "inline";
+          document.getElementById("send_b3").style.display = "inline";
+          document.getElementById("init_b3").style.display = "none";
+          document.getElementById("init_b4").style.display = "none";
+          document.getElementById("init_b5").style.display = "none";
+          document.getElementById("init_b7").style.display = "none";
+          break;
+        case "R":
+          document.getElementById("init_b3").style.display = "inline";
+          document.getElementById("init_b4").style.display = "inline";
+          document.getElementById("init_b5").style.display = "inline";
+          document.getElementById("init_b7").style.display = "inline";
+          break;
+      }
+    }
+
     function parseMsg(msg) {
-      console.log("parseMsg È£ÃâµÊ: " + msg);
+      console.log("parseMsg í˜¸ì¶œë¨: " + msg);
       var recvlogElement = document.getElementById('recvlog');
       recvlogElement.value += msg + "\n";
 
@@ -96,25 +198,25 @@
       if (Insp["EVENT"] == "CMDRESULT") {
         // Handle CMDRESULT event
       } else if (Insp["EVENT"] == "RINGEVENT") {
+        alert("ì „í™”ê°€ ì™”ìŠµë‹ˆë‹¤: " + Insp["CALLERID"]);
         setInfoval(Insp["CHANNEL"], Insp["RECHANNEL"], Insp["ISDIAL"], Insp["EVENT"], Insp, 1);
       } else if (Insp["EVENT"] == "LOGINRESULT") {
         if (status == "1") {
-          console.log("·Î±×ÀÎ ¼º°ø");
-          viewMenu('CtiTable', 1);
-          document.getElementById('BtnCONN').value = "Á¾·á";
+          console.log("ë¡œê·¸ì¸ ì„±ê³µ");
+          BBS_LOGIN();
           var linfos = msg.split(",");
           var PhoneNum = linfos[0];
           var UserExten = Insp["EXTEN"];
           var PhoneCaller = linfos[1];
           ISCON = 1;
-          document.getElementById('loginStatus').innerHTML = "·Î±×ÀÎ¼º°ø:" + PhoneNum + "/" + PhoneCaller;
-          document.getElementById('connectionStatus').innerText = "´ë±âÁß";
+          document.getElementById('loginStatus').innerHTML = "ë¡œê·¸ì¸ì„±ê³µ:" + PhoneNum + "/" + PhoneCaller;
+          document.getElementById('connectionStatus').innerText = "ëŒ€ê¸°ì¤‘";
         } else {
-          console.log("·Î±×ÀÎ ½ÇÆĞ");
+          console.log("ë¡œê·¸ì¸ ì‹¤íŒ¨");
           document.getElementById('EventClientCtrl').DisconnectServer();
-          document.getElementById('loginStatus').innerHTML = "·Î±×ÀÎ½ÇÆĞ";
-          document.getElementById('connectionStatus').innerText = "Á¢¼Ó ¾ÈµÊ";
-          alert("LOGIN ½ÇÆĞ:" + msg);
+          document.getElementById('loginStatus').innerHTML = "ë¡œê·¸ì¸ì‹¤íŒ¨";
+          document.getElementById('connectionStatus').innerText = "ì ‘ì† ì•ˆë¨";
+          alert("LOGIN ì‹¤íŒ¨:" + msg);
         }
       } else if (Insp["EVENT"] == "CHANNELLIST") {
         setInfoval(Insp["CHANNEL1"], Insp["CHANNEL2"], ISCALL, Insp["EVENT"], Insp, 2);
@@ -124,50 +226,40 @@
       return false;
     }
 
+    function hangup() {
+      document.getElementById("EventClientCtrl").Hangup();
+      document.getElementById("stateMsg").innerHTML = "ëŒ€ê¸°ì¤‘";
+      location.reload();
+    }
+
+    function hold() {
+      document.getElementById("EventClientCtrl").Hold();
+      document.getElementById("stateMsg").innerHTML = "ë³´ë¥˜";
+    }
+
+    function unhold() {
+      document.getElementById("EventClientCtrl").Unhold();
+      document.getElementById("stateMsg").innerHTML = "ì¬ì—°ê²°";
+    }
+
     window.onload = function() {
       initializeAndConnect();
     }
   </script>
 
-  <script for="EventClientCtrl" event="SendRingEvent(bstrRingEvent)">
-    parseMsg(bstrRingEvent);
-  </script>
-  <script for="EventClientCtrl" event="SendChannelListEvent(bstrChannelList)">
-    parseMsg(bstrChannelList);
-  </script>
-  <script for="EventClientCtrl" event="SendChannelOutEvent(bstrChannelOut)">
-    parseMsg(bstrChannelOut);
-  </script>
-  <script for="EventClientCtrl" event="SendLoginResultEvent(bstrLoginResult)">
-    parseMsg(bstrLoginResult);
-  </script>
   <script for="EventClientCtrl" event="SendCommandResultEvent(bstrCommandResult)">
+    console.log("SendCommandResultEvent í˜¸ì¶œë¨")
     CommandResultEvent(bstrCommandResult);
   </script>
   <script for="EventClientCtrl" event="SendNetworkErrorEvent()">
+    console.log("SendNetworkErrorEvent í˜¸ì¶œë¨");
     document.getElementById('EventClientCtrl').DisconnectServer();
-    document.getElementById('BtnCONN').value = "Á¢¼Ó";
-    document.getElementById('loginStatus').innerHTML = "Á¢¼ÓÁ¾·á";
+    document.getElementById('BtnCONN').value = "ì ‘ì†";
+    document.getElementById('loginStatus').innerHTML = "ì ‘ì†ì¢…ë£Œ";
 
-    viewMenu('CtiTable');
     ISCON = 0;
     document.getElementById('recvlog').value += "disconnected......\n";
   </script>
-  <script for="EventClientCtrl" event="SendEtcEvent(strEventName, strEventValue)">
-    EtcEvent(strEventName, strEventValue);
-  </script>
-  <script for="EventClientCtrl" event="SendSMSEvent(strEventValue)">
-    EtcEvent("SendSMSEvent", strEventValue);
-  </script>
-  <script for="EventClientCtrl" event="SendPeerMsgEvent(strEventValue)">
-    EtcEvent("SendPeerMsgEvent", strEventValue);
-  </script>
-  <script for="EventClientCtrl" event="SendCmdErrorEvent(strCmd, strEventValue)">
-    if (strCmd != "Connect") {
-      alert("CmdError: cmd(" + strCmd + ")" + strEventValue);
-    }
-    EtcEvent("SendDtmfEvent", strEventValue);
-  </script>
 
-  <object style="display:none;" id="EventClientCtrl" classid="CLSID:86019F2F-2899-4C4C-A6FE-24CFF7CD6D4C" codebase="/activeXLGUBaseOpenApi_1.0.1.21.cab#version=1,0,1,21"></object>
+
 </div>
