@@ -1,0 +1,900 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wiocrm.mapper.DashboardMapper">
+    <select id="findDataForCard1" resultType="com.wiocrm.model.DashboardData">
+        select
+        nvl(todayMiss,0)todayMiss,
+        nvl(todayCom,0)count_Com,
+        nvl(todayEme,0) todayEme,
+        nvl(todayMiss+todayCom,0)count_sum,
+        NVL(ROUND((todayCom / NULLIF(todayMiss + todayCom, 0)) * 100, 2), 0) AS processing_rate
+        from
+        (
+        select
+
+        (
+        SELECT count(*)
+        FROM
+        (SELECT MAX(CALLDATE)CALL_DATE ,CLID,CUST_CODE,PROJECT_CODE
+        FROM CALL_LOG_D
+        WHERE substr(calldate,0,10)= TO_CHAR(SYSDATE,'YYYY-MM-DD')
+        and cust_code is not null
+        GROUP BY SUBSTR(calldate,0,10) , CLID,CUST_CODE,PROJECT_CODE) A,CALL_LOG_D B
+        WHERE A.CALL_DATE = B.CALLDATE
+        AND substr(calldate,0,10) =TO_CHAR(SYSDATE,'YYYY-MM-DD')
+     <![CDATA[
+          AND A.CLID = B.CLID
+        AND RESULT <>'ANSWER'
+        --and b.context <> 'outbound'
+        and a.cust_code is not null
+      ]]>
+        <if test="custCode != null and !custCode.isEmpty()">
+            AND a.CUST_CODE = #{custCode}
+        </if>
+        )  todayMiss,
+        (
+        SELECT count(A.CUST_CODE)
+        FROM TBND01 A
+        WHERE 1=1
+        AND PRC_GUBN = '2'
+        AND TO_CHAR(IN_DATE, 'YYYYMMDD') = TO_CHAR(SYSDATE,'YYYYMMDD')
+        <if test="custCode != null and !custCode.isEmpty()">
+            AND CUST_CODE = #{custCode}
+        </if>
+        )todayCom,
+        (
+        SELECT count(A.CUST_CODE)
+        FROM TBND01 A
+        WHERE 1=1
+        AND A.PRC_GUBN = '2'
+        AND EMG_GUBN = '1'
+        AND TO_CHAR(IN_DATE, 'YYYYMMDD') = to_char(sysdate,'YYYYMMDD')
+        )todayEme
+        from dual
+        )
+
+</select>
+
+    <select id="findDataForCard2" resultType="com.wiocrm.model.DashboardData">
+
+        SELECT
+            NVL(
+                    TO_CHAR(
+                            CASE
+                                WHEN percentChange > 100 THEN percentChange - 100
+                                ELSE percentChange
+                                END,
+                            'FM999999990.00'
+                        ),
+                    '0'
+                ) AS processing_rate,
+            dailyPoint,
+            dailyPointN
+        FROM (
+                 SELECT
+                             (today.dailyPointN - yesterday.dailyPointN) / NULLIF(yesterday.dailyPointN, 0) * 100 AS percentChange,
+                             today.dailyPoint as dailyPoint,
+                             today.dailyPointN as dailyPointN
+                 FROM
+                     (
+                         SELECT
+                             NVL(TO_CHAR(SUM(point) * -1, '999,999,999,999'), '0') AS dailyPoint,
+                             NVL(SUM(point) * -1, 0) AS dailyPointN
+                         FROM
+                             tcnt01_point
+                         WHERE
+                             call_code IS NOT NULL
+                           AND ISSUE_DATE =to_char(sysdate,'YYYYMMDD') -- 오늘 날짜
+                             <if test="custCode != null and !custCode.isEmpty()">
+                            AND CUST_CODE = #{custCode}
+                             </if>
+                     ) today,
+                     (
+                         SELECT
+                             NVL(TO_CHAR(SUM(point) * -1, '999,999,999,999'), '0') AS dailyPoint,
+                             NVL(SUM(point) * -1, 0) AS dailyPointN
+                         FROM
+                             tcnt01_point
+                         WHERE
+                             call_code IS NOT NULL
+                           AND ISSUE_DATE = to_char(sysdate-1,'YYYYMMDD') -- 어제 날짜; 날짜가 잘못 지정되었으니 적절히 조정해야 함
+                             <if test="custCode != null and !custCode.isEmpty()">
+                            AND CUST_CODE = #{custCode}
+                             </if>
+                     ) yesterday
+             )
+
+    </select>
+    <select id="findPointList" resultType="com.wiocrm.model.DashboardData">
+
+
+
+
+        WITH AggregatedData AS (
+            SELECT
+                CS_TYPE,
+                count(POINT) AS TotalPoints
+            FROM tcnt01_point b
+                     INNER JOIN tcnt01 a ON a.cust_code = b.cust_code
+                     INNER JOIN tbnd01 c ON b.cust_code = c.cust_code
+                AND b.projct_code = c.project_code
+                AND b.call_code = c.call_code
+                AND b.person_code = c.person_code
+            WHERE b.issue_date = to_char(sysdate,'YYYYMMDD')
+        <if test="custCode != null and !custCode.isEmpty()">
+              AND b.CUST_CODE = #{custCode}
+        </if>
+            GROUP BY CS_TYPE
+        ),
+        <![CDATA[
+             RankedData AS (
+                 SELECT
+                     CS_TYPE,
+                     TotalPoints,
+                     ROW_NUMBER() OVER (ORDER BY TotalPoints DESC) AS Rank
+                 FROM AggregatedData A
+             ),
+             FinalData AS (
+                 SELECT
+                     CASE
+                         WHEN Rank <= 2 THEN CS_TYPE
+                         ELSE '기타'
+                         END AS GroupingKey,
+                     SUM(TotalPoints) AS Points
+                 FROM RankedData
+                 GROUP BY
+                     CASE
+                         WHEN Rank <= 2 THEN CS_TYPE
+                         ELSE '기타'
+                         END
+             )
+        SELECT
+            DECODE((SELECT ADM_SNAME FROM TSYS01 WHERE ADM_GUBN='4002' AND ADM_CODE= GroupingKey),NULL,'기타',(SELECT ADM_SNAME FROM TSYS01 WHERE ADM_GUBN='4002' AND ADM_CODE= GroupingKey)) AS CS_TYPE,
+            TO_CHAR(nvl(Points,0),'999,999,999,999') as dailyPoint , nvl(Points,0) dailyPointN
+        FROM FinalData
+        ORDER BY
+            CASE WHEN GroupingKey = '기타' THEN 1 ELSE 0 END, Points DESC
+        ]]>
+    </select>
+    <select id="dashConSum" resultType="com.wiocrm.model.DashboardData">
+
+
+        <![CDATA[
+        select (
+        SELECT count(*)
+        FROM
+        (SELECT MAX(CALLDATE)CALL_DATE ,CLID,CUST_CODE,PROJECT_CODE
+        FROM CALL_LOG_D
+        WHERE substr(calldate,0,10)= TO_CHAR(SYSDATE,'YYYY-MM-DD')
+        and cust_code is not null
+        GROUP BY SUBSTR(calldate,0,10) , CLID,CUST_CODE,PROJECT_CODE) A,CALL_LOG_D B
+        WHERE A.CALL_DATE = B.CALLDATE
+        AND substr(calldate,0,10) =TO_CHAR(SYSDATE-1,'YYYY-MM-DD')
+        AND A.CLID = B.CLID
+        AND RESULT <>'ANSWER'
+        --and b.context <> 'outbound'
+        and a.cust_code is not null
+        ]]>
+        <if test="custCode != null and !custCode.isEmpty()">
+            AND A.CUST_CODE = #{custCode}
+        </if>
+        ) yesterdayMiss,
+        (
+        SELECT count(A.CUST_CODE)
+        FROM TBND01 A
+        WHERE 1=1
+        AND PRC_GUBN = '2'
+        AND TO_CHAR(IN_DATE, 'YYYYMMDD') = TO_CHAR(SYSDATE-1,'YYYYMMDD')
+        <if test="custCode != null and !custCode.isEmpty()">
+            AND A.CUST_CODE = #{custCode}
+        </if>
+        )yesterdayCom,
+        (
+        SELECT count(A.CUST_CODE)
+        FROM TBND01 A
+        WHERE 1=1
+        AND A.PRC_GUBN = '2'
+        AND EMG_GUBN = '1'
+        AND TO_CHAR(IN_DATE, 'YYYYMMDD') = to_char(sysdate-1,'YYYYMMDD')
+        <if test="custCode != null and !custCode.isEmpty()">
+            AND A.CUST_CODE = #{custCode}
+        </if>
+        )yesterdayEme,
+        (
+        <![CDATA[
+        SELECT count(*)
+        FROM
+        (SELECT MAX(CALLDATE)CALL_DATE ,CLID,CUST_CODE,PROJECT_CODE
+        FROM CALL_LOG_D
+        WHERE substr(calldate,0,10)= TO_CHAR(SYSDATE,'YYYY-MM-DD')
+        and cust_code is not null
+        GROUP BY SUBSTR(calldate,0,10) , CLID,CUST_CODE,PROJECT_CODE) A,CALL_LOG_D B
+        WHERE A.CALL_DATE = B.CALLDATE
+        AND substr(calldate,0,10) =TO_CHAR(SYSDATE,'YYYY-MM-DD')
+        AND A.CLID = B.CLID
+        AND RESULT <>'ANSWER'
+        --and b.context <> 'outbound'
+        and a.cust_code is not null
+        ]]>
+        <if test="custCode != null and !custCode.isEmpty()">
+            AND A.CUST_CODE = #{custCode}
+        </if>
+        )  todayMiss,
+        (
+        SELECT count(A.CUST_CODE)
+        FROM TBND01 A
+        WHERE 1=1
+        AND PRC_GUBN = '2'
+        AND TO_CHAR(IN_DATE, 'YYYYMMDD') = TO_CHAR(SYSDATE,'YYYYMMDD')
+        <if test="custCode != null and !custCode.isEmpty()">
+            AND A.CUST_CODE = #{custCode}
+        </if>
+        )todayCom,
+        (
+        SELECT count(A.CUST_CODE)
+        FROM TBND01 A
+        WHERE 1=1
+        AND A.PRC_GUBN = '2'
+        AND EMG_GUBN = '1'
+        AND TO_CHAR(IN_DATE, 'YYYYMMDD') = to_char(sysdate,'YYYYMMDD')
+        <if test="custCode != null and !custCode.isEmpty()">
+            AND A.CUST_CODE = #{custCode}
+        </if>
+        )todayEme
+        from dual
+    </select>
+    <select id="dashStatCount" resultType="com.wiocrm.model.DashboardData">
+
+
+
+
+        WITH AggregatedData AS (
+            SELECT
+                CS_TYPE,
+                COUNT(POINT)TotalCount,
+                SUM(POINT)*-1 AS TotalPoints
+            FROM tcnt01_point b
+                     INNER JOIN tcnt01 a ON a.cust_code = b.cust_code
+                     INNER JOIN tbnd01 c ON b.cust_code = c.cust_code
+                AND b.projct_code = c.project_code
+                AND b.call_code = c.call_code
+                AND b.person_code = c.person_code
+            WHERE b.issue_date = to_char(sysdate,'YYYYMMDD')
+        <if test="custCode != null and !custCode.isEmpty()">
+              AND b.CUST_CODE = #{custCode}
+        </if>
+            GROUP BY CS_TYPE
+        ),
+             RankedData AS (
+                 SELECT
+                     CS_TYPE,
+                     TotalCount,
+                     TotalPoints,
+                     ROW_NUMBER() OVER (ORDER BY TotalPoints DESC) AS Rank
+                 FROM AggregatedData A
+             ),
+             <![CDATA[
+             FinalData AS (
+                 SELECT
+                     CASE
+
+                         WHEN Rank <= 5 THEN CS_TYPE
+                         ELSE '기타'
+                         END AS GroupingKey,
+                     SUM(TotalCount) AS TotalCount,
+                     SUM(TotalPoints) AS Points
+
+                 FROM RankedData
+                 GROUP BY
+                     CASE
+                         WHEN Rank <= 5 THEN CS_TYPE
+                         ELSE '기타'
+                         END
+             )
+            ]]>
+        SELECT
+            DECODE((SELECT ADM_SNAME FROM TSYS01 WHERE ADM_GUBN='4002' AND ADM_CODE= GroupingKey),NULL,'기타',(SELECT ADM_SNAME FROM TSYS01 WHERE ADM_GUBN='4002' AND ADM_CODE= GroupingKey)) AS CS_TYPE,TotalCount,
+            TO_CHAR(nvl(Points,0),'999,999,999,999') as dailyPoint , nvl(Points,0) dailyPointN
+        FROM FinalData
+        ORDER BY
+            CASE WHEN GroupingKey = '기타' THEN 1 ELSE 0 END, Points DESC
+
+
+
+
+    </select>
+    <select id="getDashboardCallCount" resultType="com.wiocrm.model.DashboardData">
+
+        SELECT  PRC_DATE,GUBN,HOUR_09,HOUR_10,HOUR_11,HOUR_12,HOUR_13,HOUR_14,HOUR_15,HOUR_16,HOUR_17,HOUR_18,HOUR_09+HOUR_10+HOUR_11+HOUR_12+HOUR_13+HOUR_14+HOUR_15+HOUR_16+HOUR_17+HOUR_18+HOUR_19 as callSum
+          FROM (
+                  SELECT TO_CHAR(IN_DATE, 'YYYYMMDD') PRC_DATE,'1' GUBN
+                       , SUM(DECODE(TO_CHAR(IN_DATE, 'HH24'), '09', 1, 0)) HOUR_09
+                       , SUM(DECODE(TO_CHAR(IN_DATE, 'HH24'), '10', 1, 0)) HOUR_10
+                       , SUM(DECODE(TO_CHAR(IN_DATE, 'HH24'), '11', 1, 0)) HOUR_11
+                       , SUM(DECODE(TO_CHAR(IN_DATE, 'HH24'), '12', 1, 0)) HOUR_12
+                       , SUM(DECODE(TO_CHAR(IN_DATE, 'HH24'), '13', 1, 0)) HOUR_13
+                       , SUM(DECODE(TO_CHAR(IN_DATE, 'HH24'), '14', 1, 0)) HOUR_14
+                       , SUM(DECODE(TO_CHAR(IN_DATE, 'HH24'), '15', 1, 0)) HOUR_15
+                       , SUM(DECODE(TO_CHAR(IN_DATE, 'HH24'), '16', 1, 0)) HOUR_16
+                       , SUM(DECODE(TO_CHAR(IN_DATE, 'HH24'), '17', 1, 0)) HOUR_17
+                       , SUM(DECODE(TO_CHAR(IN_DATE, 'HH24'), '18', 1, 0)) HOUR_18
+                       , SUM(DECODE(TO_CHAR(IN_DATE, 'HH24'), '19', 1, 0)) HOUR_19
+                  FROM TBND01 A
+                  WHERE 1=1
+                    AND PRC_GUBN ='2'
+                    AND TO_CHAR(IN_DATE, 'YYYYMMDD') = to_char(sysdate,'YYYYMMDD')
+                    <if test="custCode != null and !custCode.isEmpty()">
+                        AND A.CUST_CODE =  #{custCode}
+                    </if>
+                  GROUP BY TO_CHAR(IN_DATE, 'YYYYMMDD')
+                  UNION ALL
+                    SELECT TO_CHAR(IN_DATE, 'YYYYMMDD') PRC_DATE,'3' GUBN
+                    , SUM(DECODE(TO_CHAR(IN_DATE, 'HH24'), '09', 1, 0)) HOUR_09
+                    , SUM(DECODE(TO_CHAR(IN_DATE, 'HH24'), '10', 1, 0)) HOUR_10
+                    , SUM(DECODE(TO_CHAR(IN_DATE, 'HH24'), '11', 1, 0)) HOUR_11
+                    , SUM(DECODE(TO_CHAR(IN_DATE, 'HH24'), '12', 1, 0)) HOUR_12
+                    , SUM(DECODE(TO_CHAR(IN_DATE, 'HH24'), '13', 1, 0)) HOUR_13
+                    , SUM(DECODE(TO_CHAR(IN_DATE, 'HH24'), '14', 1, 0)) HOUR_14
+                    , SUM(DECODE(TO_CHAR(IN_DATE, 'HH24'), '15', 1, 0)) HOUR_15
+                    , SUM(DECODE(TO_CHAR(IN_DATE, 'HH24'), '16', 1, 0)) HOUR_16
+                    , SUM(DECODE(TO_CHAR(IN_DATE, 'HH24'), '17', 1, 0)) HOUR_17
+                    , SUM(DECODE(TO_CHAR(IN_DATE, 'HH24'), '18', 1, 0)) HOUR_18
+                    , SUM(DECODE(TO_CHAR(IN_DATE, 'HH24'), '19', 1, 0)) HOUR_19
+                    FROM TBND01 A
+                    WHERE 1=1
+                    AND PRC_GUBN ='2'
+                    AND TO_CHAR(IN_DATE, 'YYYYMMDD') = to_char(sysdate-1,'YYYYMMDD')
+                    <if test="custCode != null and !custCode.isEmpty()">
+                        AND A.CUST_CODE =  #{custCode}
+                    </if>
+                    GROUP BY TO_CHAR(IN_DATE, 'YYYYMMDD')
+                    UNION ALL
+                  SELECT SUBSTR(REPLACE(CALLDATE,'-',''), 1,8) PRC_DATE ,'2' GUBN
+                       , SUM(DECODE(SUBSTR(CALLDATE, 12,2), '09', 1, 0)) HOUR_09
+                       , SUM(DECODE(SUBSTR(CALLDATE, 12,2), '10', 1, 0)) HOUR_10
+                       , SUM(DECODE(SUBSTR(CALLDATE, 12,2), '11', 1, 0)) HOUR_11
+                       , SUM(DECODE(SUBSTR(CALLDATE, 12,2), '12', 1, 0)) HOUR_12
+                       , SUM(DECODE(SUBSTR(CALLDATE, 12,2), '13', 1, 0)) HOUR_13
+                       , SUM(DECODE(SUBSTR(CALLDATE, 12,2), '14', 1, 0)) HOUR_14
+                       , SUM(DECODE(SUBSTR(CALLDATE, 12,2), '15', 1, 0)) HOUR_15
+                       , SUM(DECODE(SUBSTR(CALLDATE, 12,2), '16', 1, 0)) HOUR_16
+                       , SUM(DECODE(SUBSTR(CALLDATE, 12,2), '17', 1, 0)) HOUR_17
+                       , SUM(DECODE(SUBSTR(CALLDATE, 12,2), '18', 1, 0)) HOUR_18
+                       , SUM(DECODE(SUBSTR(CALLDATE, 12,2), '19', 1, 0)) HOUR_19
+                  FROM (SELECT B.CALLDATE,B.CLID,B.PERSON_CODE,B.CUST_CODE,B.PROJECT_CODE,B.empno,B.INCALL_NO ,1 COUNT,B.RESULT,B.CONTEXT
+                        FROM
+                            (SELECT MAX(CALLDATE)CALL_DATE ,CLID,CUST_CODE,PROJECT_CODE
+                            FROM CALL_LOG_D
+                            WHERE substr(calldate,0,10)=to_char(sysdate,'YYYY-MM-DD')
+                             and cust_code is not null
+                            GROUP BY SUBSTR(calldate,0,10) , CLID,CUST_CODE,PROJECT_CODE) A,CALL_LOG_D B
+                        WHERE A.CALL_DATE = B.CALLDATE
+                          AND substr(calldate,0,10)=to_char(sysdate,'YYYY-MM-DD')
+                          AND A.CLID = B.CLID
+                <![CDATA[
+                          AND RESULT <>'ANSWER'
+                         -- and b.context <> 'outbound'
+                ]]>
+                        <if test="custCode != null and !custCode.isEmpty()">
+                          AND A.CUST_CODE =  #{custCode}
+                        </if>
+                        ORDER BY CALLDATE DESC) a
+                  WHERE 1=1
+                    AND CUST_CODE IS NOT NULL
+                  GROUP BY SUBSTR(REPLACE(CALLDATE,'-',''), 1,8)
+            )
+        ORDER BY PRC_DATE
+
+
+    </select>
+    <select id="getDashboardPersonCount" resultType="com.wiocrm.model.DashboardData">
+        SELECT
+            IN_DATE_MONTH as PERSONMONTH,
+            SUM(CASE WHEN DATE_MATCH = 'N' THEN 1 ELSE 0 END) AS NEWPERSONCOUNT,
+            SUM(CASE WHEN DATE_MATCH = 'O' THEN 1 ELSE 0 END) AS OLDPERSONCOUNT
+        FROM (
+            SELECT
+                TO_CHAR(B.IN_DATE, 'YYYY-MM') AS IN_DATE_MONTH,A.PERSON_CODE,
+                CASE
+                WHEN TO_CHAR(A.IN_DATE, 'YYYYMM') = TO_CHAR(B.IN_DATE, 'YYYYMM') THEN 'N'
+                ELSE 'O'
+                END AS DATE_MATCH
+            FROM
+            TPER01 A
+            JOIN TBND01 B ON A.CUST_CODE = B.CUST_CODE
+                AND A.PROJECT_CODE = B.PROJECT_CODE
+                AND A.PERSON_CODE = B.PERSON_CODE
+                and B.PRC_GUBN='2'
+            <if test="custCode != null and !custCode.isEmpty()">
+                AND A.CUST_CODE =  #{custCode}
+            </if>
+            WHERE
+        <![CDATA[
+            B.IN_DATE >= ADD_MONTHS(TRUNC(SYSDATE, 'MM'), -11)
+            AND B.IN_DATE < TRUNC(SYSDATE, 'MM') + INTERVAL '1' MONTH
+        ]]>
+
+        )
+        GROUP BY
+        IN_DATE_MONTH
+        ORDER BY
+        IN_DATE_MONTH
+
+    </select>
+
+    <select id="getDashboardMonth" resultType="com.wiocrm.model.DashboardData">
+
+
+        SELECT A AS THISMONTH, B AS PREVIOUSMONTH,
+        CASE
+        WHEN B = 0 THEN 0 -- Avoid division by zero by directly returning 0 when B is zero.
+        ELSE NVL(TRUNC((A / B) * 100), 0)
+        END AS PERCENTCHANGE
+        FROM (
+        SELECT (
+        SELECT NVL(COUNT(CUST_CODE), 0)
+        FROM TBND01
+        WHERE TO_CHAR(IN_dATE, 'YYYYMM') = TO_CHAR(SYSDATE, 'YYYYMM')
+        <if test="custCode != null and !custCode.isEmpty()">
+            AND CUST_CODE =  #{custCode}
+        </if>
+        AND PRC_GUBN = '2'
+        ) AS A,
+        (
+        SELECT NVL(COUNT(CUST_CODE), 0)
+        FROM TBND01
+        WHERE TO_CHAR(IN_DATE, 'YYYYMM') = TO_CHAR(ADD_MONTHS(SYSDATE, -1), 'YYYYMM')
+        <if test="custCode != null and !custCode.isEmpty()">
+            AND CUST_CODE =  #{custCode}
+        </if>
+        AND PRC_GUBN = '2'
+        ) AS B
+        FROM DUAL
+        )
+
+
+    </select>
+
+    <select id="getEmployeeList" resultType="Map">
+        <![CDATA[
+        SELECT
+            CASE WHEN GROUPING(EMP_NAME) = 1 THEN 'Total' ELSE EMP_NAME END AS EMP_NAME,
+            NVL(SUM(DAILY_PRCSUM),0) AS DAILY_PRCSUM,
+            NVL(SUM(MONTHLY_PRCSUM),0) AS MONTHLY_PRCSUM,
+            TO_CHAR(SUM(DAILY_POINTSUM),'999,999,999') AS DAILY_POINTSUM, -- 숫자로 합계 계산
+            TO_CHAR(SUM(MONTHLY_POINTSUM),'999,999,999') AS MONTHLY_POINTSUM, -- 숫자로 합계 계산
+            NVL(SUM(DAILY_CALLP),0) AS TOTAL_DAILY_CALLP,
+            NVL(SUM(MONTHLY_CALLP),0) AS TOTAL_MONTHLY_CALLP,
+            TO_CHAR(SUM(DAILY_TOTAL),'999,999,999') AS DAILY_TOTAL, -- 숫자로 합계 계산
+            TO_CHAR(SUM(MONTHLY_TOTAL),'999,999,999') AS MONTHLY_TOTAL, -- 숫자로 합계 계산
+            ROUND(SUM(MONTHLY_POINTSUM) / SUM(SUM(MONTHLY_POINTSUM)) OVER () * 100, 2) AS MONTHLY_POINTSUM_PERCENT
+        FROM (
+                 SELECT
+                     EMP_NAME,
+                     NVL(MAX(CASE WHEN PERIOD = 'DAILY' THEN PRCSUM END),0) AS DAILY_PRCSUM,
+                     NVL(MAX(CASE WHEN PERIOD = 'MONTHLY' THEN PRCSUM END),0) AS MONTHLY_PRCSUM,
+                     NVL(MAX(CASE WHEN PERIOD = 'DAILY' THEN POINTSUM END),0) AS DAILY_POINTSUM,
+                     NVL(MAX(CASE WHEN PERIOD = 'MONTHLY' THEN POINTSUM END),0) AS MONTHLY_POINTSUM,
+                     NVL(MAX(CASE WHEN PERIOD = 'DAILY' THEN CALLP END),0) AS DAILY_CALLP,
+                     NVL(MAX(CASE WHEN PERIOD = 'MONTHLY' THEN CALLP END),0) AS MONTHLY_CALLP,
+                     NVL(MAX(CASE WHEN PERIOD = 'DAILY' THEN TOTAL END),0) AS DAILY_TOTAL,
+                     NVL(MAX(CASE WHEN PERIOD = 'MONTHLY' THEN TOTAL END),0) AS MONTHLY_TOTAL
+                 FROM (
+                          -- MONTHLY PERIOD QUERY
+                          SELECT 'MONTHLY' AS PERIOD, E.EMP_NAME, SUM(NVL(TB.PRC_02, 0)) AS PRCSUM, SUM(TB.POINT) AS POINTSUM, CP.CALLP, SUM(NVL(TB.PRC_02, 0)) * CP.CALLP AS TOTAL
+                          FROM (SELECT
+                                    EMPNO,
+                                    NVL(SUM(CASE WHEN PRC_GUBN = '2' THEN 1 ELSE 0 END), 0) AS PRC_02,
+                                    (SELECT SUM(POINT)
+                                     FROM TCNT01_POINT
+                                     WHERE EMPNO = TBND01.EMPNO
+                                       AND CALL_CODE IS NOT NULL
+                                       AND TO_CHAR(IN_DATE, 'YYYYMM') = TO_CHAR(SYSDATE, 'YYYYMM')
+                                    ) * -1 AS POINT
+                                FROM TBND01
+                                WHERE TO_CHAR(IN_DATE, 'YYYYMM') = TO_CHAR(SYSDATE, 'YYYYMM')
+                                  AND CUST_CODE <> 'P000000052'
+                                GROUP BY EMPNO
+                               ) TB
+                                   LEFT JOIN TEMP01 E ON TB.EMPNO = E.EMPNO
+                                   LEFT JOIN (
+                              SELECT EMPNO,
+                                     CASE
+                                         WHEN COUNT < 1680 THEN 500
+                                         WHEN COUNT < 1890 THEN 536
+                                         WHEN COUNT < 2100 THEN 556
+                                         WHEN COUNT < 2310 THEN 667
+                                         WHEN COUNT < 2520 THEN 701
+                                         WHEN COUNT < 2730 THEN 730
+                                         WHEN COUNT < 3045 THEN 755
+                                         ELSE 788
+                                         END AS CALLP
+                              FROM (SELECT EMPNO, COUNT(*) AS COUNT
+                                    FROM TBND01
+                                    WHERE PRC_GUBN = '2'
+                                      AND TO_CHAR(IN_DATE, 'YYYYMM') = TO_CHAR(SYSDATE, 'YYYYMM')
+                                      AND CUST_CODE <> 'P000000052'
+                                    GROUP BY EMPNO
+                                   ) GROUPED
+                          ) CP ON TB.EMPNO = CP.EMPNO
+                          GROUP BY E.EMP_NAME, CP.CALLP
+                          UNION ALL
+                          -- DAILY PERIOD QUERY (Similar to the MONTHLY query but for 'YYYYMMDD')
+                          SELECT 'DAILY' AS PERIOD, E.EMP_NAME, SUM(NVL(TB.PRC_02, 0)) AS PRCSUM, SUM(TB.POINT) AS POINTSUM, CP.CALLP, SUM(NVL(TB.PRC_02, 0)) * CP.CALLP AS TOTAL
+                          FROM (SELECT
+                                    EMPNO,
+                                    NVL(SUM(CASE WHEN PRC_GUBN = '2' THEN 1 ELSE 0 END), 0) AS PRC_02,
+                                    (SELECT SUM(POINT)
+                                     FROM TCNT01_POINT
+                                     WHERE EMPNO = TBND01.EMPNO
+                                       AND CALL_CODE IS NOT NULL
+                                       AND TO_CHAR(IN_DATE, 'YYYYMMDD') = TO_CHAR(SYSDATE, 'YYYYMMDD')
+                                    ) * -1 AS POINT
+                                FROM TBND01
+                                WHERE TO_CHAR(IN_DATE, 'YYYYMMDD') = TO_CHAR(SYSDATE, 'YYYYMMDD')
+                                  AND CUST_CODE <> 'P000000052'
+                                GROUP BY EMPNO
+                               ) TB
+                                   LEFT JOIN TEMP01 E ON TB.EMPNO = E.EMPNO
+                                   LEFT JOIN (
+                              SELECT EMPNO,
+                                     CASE
+                                         WHEN COUNT < 1680 THEN 500
+                                         WHEN COUNT < 1890 THEN 536
+                                         WHEN COUNT < 2100 THEN 556
+                                         WHEN COUNT < 2310 THEN 667
+                                         WHEN COUNT < 2520 THEN 701
+                                         WHEN COUNT < 2730 THEN 730
+                                         WHEN COUNT < 3045 THEN 755
+                                         ELSE 788
+                                         END AS CALLP
+                              FROM (
+                                       SELECT EMPNO, COUNT(*) AS COUNT
+                                       FROM TBND01
+                                       WHERE PRC_GUBN = '2'
+                                         AND TO_CHAR(IN_DATE, 'YYYYMMDD') = TO_CHAR(SYSDATE, 'YYYYMMDD')
+                                         AND CUST_CODE <> 'P000000052'
+                                       GROUP BY EMPNO
+                                   ) GROUPED
+                          ) CP ON TB.EMPNO = CP.EMPNO
+                          GROUP BY E.EMP_NAME, CP.CALLP
+                          UNION ALL
+                          SELECT 'DAILY' AS PERIOD,
+                                 '관리자' AS EMP_NAME,
+                                 COUNT(POINT) AS PRCSUM,
+                                 SUM(POINT)*-1 AS POINTSUM,
+                                 0 AS CALLP ,
+                                 0 AS TOTAL
+                          FROM TCNT01_POINT A
+                          WHERE PERSON_CODE IS NULL
+                            AND POINT_CHARGE IS NOT NULL
+                            AND POINT<0
+                            AND TO_CHAR(IN_DATE, 'YYYYMMDD') = TO_CHAR(SYSDATE, 'YYYYMMDD')
+
+                          UNION ALL
+                          SELECT 'MONTHLY' AS PERIOD,
+                                 '관리자' AS EMP_NAME,
+                                 COUNT(POINT) AS PRCSUM,
+                                 SUM(POINT)*-1 AS POINTSUM,
+                                 0 AS CALLP ,
+                                 0 AS TOTAL
+                          FROM TCNT01_POINT A
+                          WHERE PERSON_CODE IS NULL
+                            AND POINT_CHARGE IS NOT NULL
+                            AND POINT<0
+                            AND TO_CHAR(IN_DATE, 'YYYYMM') = TO_CHAR(SYSDATE, 'YYYYMM')
+                      )
+                 GROUP BY EMP_NAME)
+        GROUP BY ROLLUP(EMP_NAME)
+        ORDER BY  EMP_NAME
+        ]]>
+    </select>
+    <select id="getDailyAve" resultType="Map">
+
+        WITH DatePeriods AS (
+            SELECT '월요일' AS weekday, 2 AS day_num FROM DUAL UNION ALL
+            SELECT '화요일', 3 FROM DUAL UNION ALL
+            SELECT '수요일', 4 FROM DUAL UNION ALL
+            SELECT '목요일', 5 FROM DUAL UNION ALL
+            SELECT '금요일', 6 FROM DUAL
+        ),
+             Periods AS (
+                 SELECT '1W' AS period, TRUNC(SYSDATE-8) AS start_date, TRUNC(SYSDATE)-1 AS end_date, 1 AS weeks FROM DUAL UNION ALL
+                 SELECT '1M', ADD_MONTHS(TRUNC(SYSDATE, 'MM'), -1), TRUNC(SYSDATE, 'MM'), 4 AS weeks FROM DUAL UNION ALL
+                 SELECT '3M', ADD_MONTHS(TRUNC(SYSDATE, 'MM'), -3), TRUNC(SYSDATE, 'MM'), 13 AS weeks FROM DUAL UNION ALL
+                 SELECT '6M', ADD_MONTHS(TRUNC(SYSDATE, 'MM'), -6), TRUNC(SYSDATE, 'MM'), 26 AS weeks FROM DUAL UNION ALL
+                 SELECT '9M', ADD_MONTHS(TRUNC(SYSDATE, 'MM'), -9), TRUNC(SYSDATE, 'MM'), 26 AS weeks FROM DUAL UNION ALL
+                 SELECT '12M', ADD_MONTHS(TRUNC(SYSDATE, 'MM'), -12), TRUNC(SYSDATE, 'MM'), 52 AS weeks FROM DUAL
+             ),
+             AggregatedData AS (
+                 SELECT
+                     dp.weekday,
+                     p.period,
+                     COUNT(*) AS count,
+            p.weeks AS weeks
+        FROM twowincall.tbnd01 t
+            JOIN Periods p ON t.IN_DATE BETWEEN p.start_date AND p.end_date
+            JOIN DatePeriods dp ON TO_CHAR(t.IN_DATE, 'D', 'NLS_DATE_LANGUAGE=AMERICAN') = TO_CHAR(dp.day_num)
+        WHERE t.PRC_GUBN = '2'
+        <if test="custCode != null and !custCode.isEmpty()">
+            AND CUST_CODE =  #{custCode}
+        </if>
+          AND TO_CHAR(t.IN_DATE, 'D', 'NLS_DATE_LANGUAGE=AMERICAN') BETWEEN '2' AND '6'
+        GROUP BY dp.weekday, p.period, p.weeks
+            )
+        SELECT
+            dp.weekday,
+            ROUND(SUM(CASE WHEN ad.period = '1W' THEN ad.count ELSE 0 END) / MAX(CASE WHEN ad.period = '1W' THEN ad.weeks ELSE 1 END), 0) AS avg1week,
+            ROUND(SUM(CASE WHEN ad.period = '1M' THEN ad.count ELSE 0 END) / MAX(CASE WHEN ad.period = '1M' THEN ad.weeks ELSE 4 END), 0) AS avg1month,
+            ROUND(SUM(CASE WHEN ad.period = '3M' THEN ad.count ELSE 0 END) / MAX(CASE WHEN ad.period = '3M' THEN ad.weeks ELSE 13 END), 0) AS avg3months,
+            ROUND(SUM(CASE WHEN ad.period = '6M' THEN ad.count ELSE 0 END) / MAX(CASE WHEN ad.period = '6M' THEN ad.weeks ELSE 26 END), 0) AS avg6months,
+            ROUND(SUM(CASE WHEN ad.period = '9M' THEN ad.count ELSE 0 END) / MAX(CASE WHEN ad.period = '9M' THEN ad.weeks ELSE 26 END), 0) AS avg9months,
+            ROUND(SUM(CASE WHEN ad.period = '12M' THEN ad.count ELSE 0 END) / MAX(CASE WHEN ad.period = '12M' THEN ad.weeks ELSE 52 END), 0) AS avg12months
+        FROM DatePeriods dp
+                 LEFT JOIN AggregatedData ad ON dp.weekday = ad.weekday
+        GROUP BY dp.weekday
+        ORDER BY
+            CASE dp.weekday
+                WHEN '월요일' THEN 1
+                WHEN '화요일' THEN 2
+                WHEN '수요일' THEN 3
+                WHEN '목요일' THEN 4
+                WHEN '금요일' THEN 5
+                END
+
+    </select>
+
+    <select id="getWeeklySum" resultType="Map">
+    SELECT WEEK,
+        SUM(MONDAY) AS "MONDAY",
+        SUM(TUESDAY) AS "TUESDAY",
+        SUM(WEDNESDAY) AS "WEDNESDAY",
+        SUM(THURSDAY) AS "THURSDAY",
+        SUM(FRIDAY) AS "FRIDAY"
+    FROM (
+            SELECT 'PRI' AS WEEK,
+            COUNT(CASE WHEN TO_CHAR(IN_DATE,'DY', 'NLS_DATE_LANGUAGE=AMERICAN') = 'MON' THEN 1 END) AS MONDAY,
+            COUNT(CASE WHEN TO_CHAR(IN_DATE,'DY', 'NLS_DATE_LANGUAGE=AMERICAN') = 'TUE' THEN 1 END) AS TUESDAY,
+            COUNT(CASE WHEN TO_CHAR(IN_DATE,'DY', 'NLS_DATE_LANGUAGE=AMERICAN') = 'WED' THEN 1 END) AS WEDNESDAY,
+            COUNT(CASE WHEN TO_CHAR(IN_DATE,'DY', 'NLS_DATE_LANGUAGE=AMERICAN') = 'THU' THEN 1 END) AS THURSDAY,
+            COUNT(CASE WHEN TO_CHAR(IN_DATE,'DY', 'NLS_DATE_LANGUAGE=AMERICAN') = 'FRI' THEN 1 END) AS FRIDAY
+            FROM TBND01
+            WHERE PRC_GUBN = '2'
+            <if test="custCode != null and !custCode.isEmpty()">
+                AND CUST_CODE =  #{custCode}
+            </if>
+            AND IN_DATE BETWEEN TRUNC(SYSDATE, 'IW') - 10 AND TRUNC(SYSDATE, 'IW') - 3
+    UNION ALL
+            SELECT 'THI' AS WEEK,
+            COUNT(CASE WHEN TO_CHAR(IN_DATE,'DY', 'NLS_DATE_LANGUAGE=AMERICAN') = 'MON' THEN 1 END) AS MONDAY,
+            COUNT(CASE WHEN TO_CHAR(IN_DATE,'DY', 'NLS_DATE_LANGUAGE=AMERICAN') = 'TUE' THEN 1 END) AS TUESDAY,
+            COUNT(CASE WHEN TO_CHAR(IN_DATE,'DY', 'NLS_DATE_LANGUAGE=AMERICAN') = 'WED' THEN 1 END) AS WEDNESDAY,
+            COUNT(CASE WHEN TO_CHAR(IN_DATE,'DY', 'NLS_DATE_LANGUAGE=AMERICAN') = 'THU' THEN 1 END) AS THURSDAY,
+            COUNT(CASE WHEN TO_CHAR(IN_DATE,'DY', 'NLS_DATE_LANGUAGE=AMERICAN') = 'FRI' THEN 1 END) AS FRIDAY
+            FROM TBND01
+            WHERE PRC_GUBN = '2'
+            <if test="custCode != null and !custCode.isEmpty()">
+                AND CUST_CODE =  #{custCode}
+            </if>
+            AND IN_DATE BETWEEN TRUNC(SYSDATE, 'IW') AND TRUNC(SYSDATE, 'IW') + 5
+    )
+    GROUP BY WEEK
+    ORDER BY WEEK DESC
+</select>
+
+    <select id="getMonthlySum" resultType="Map">
+    WITH months AS (
+    SELECT ADD_MONTHS(TRUNC(SYSDATE, 'MM'), -level + 1) AS month_start
+    FROM dual
+    <![CDATA[
+    CONNECT BY LEVEL <= 12
+    )
+    SELECT
+    TO_CHAR(m.month_start, 'YYYY-MM') AS "MONTH",
+    COUNT(t.IN_DATE) AS countMonthSum
+    FROM months m
+    LEFT JOIN TBND01 t ON t.IN_DATE >= m.month_start
+        AND t.IN_DATE < ADD_MONTHS(m.month_start, 1)
+        ]]>
+        AND t.PRC_GUBN = '2'
+        <if test="custCode != null and !custCode.isEmpty()">
+            AND t.CUST_CODE =  #{custCode}
+        </if>
+    GROUP BY m.month_start
+    ORDER BY m.month_start
+    </select>
+    <select id="getPoint" resultType="com.wiocrm.model.DashboardData">
+        WITH DateInfo AS (
+            SELECT
+            TO_CHAR(SYSDATE, 'YYYYMM') AS CurrentMonth,
+            TO_CHAR(SYSDATE, 'YYYYMMDD') AS CurrentDay,
+            TRUNC(SYSDATE, 'IW') AS ThisWeekStart,
+            TRUNC(SYSDATE, 'IW') + 5 AS ThisWeekEnd
+            FROM DUAL
+        ),
+            AggregatedPoints AS (
+            SELECT
+            TP.CUST_CODE,
+            <![CDATA[
+            SUM(CASE WHEN TP.CALL_CODE IS NULL AND TP.PERSON_CODE IS NULL AND TP.POINT_CHARGE IS NOT NULL THEN TP.POINT ELSE 0 END) AS POINT_CHARGE,
+            SUM(CASE WHEN TP.POINT<0 THEN TP.POINT ELSE 0 END) AS POINT_USE,
+            SUM(CASE WHEN TP.CALL_CODE IS NOT NULL AND TP.PERSON_CODE IS NOT NULL AND TP.POINT_CHARGE IS NULL AND TO_CHAR(TP.IN_DATE, 'YYYYMMDD') = CurrentDay THEN TP.POINT ELSE 0 END) AS POINT_USE_DAY,
+            SUM(CASE WHEN TP.CALL_CODE IS NOT NULL AND TP.PERSON_CODE IS NOT NULL AND TP.POINT_CHARGE IS NULL AND TP.IN_DATE >= ThisWeekStart AND TP.IN_DATE < ThisWeekEnd THEN TP.POINT ELSE 0 END) AS POINT_USE_WEEK
+            ]]>
+            FROM
+            TCNT01_POINT TP
+            INNER JOIN TCNT01 T ON TP.CUST_CODE = T.CUST_CODE
+            CROSS JOIN DateInfo
+            WHERE
+            T.USE_YN = '1'
+            <if test="custCode != null and !custCode.isEmpty()">
+                AND t.CUST_CODE =  #{custCode}
+            </if>
+            <![CDATA[
+            AND (
+            TO_CHAR(TP.IN_DATE, 'YYYYMM') = CurrentMonth
+            OR TP.IN_DATE >= ThisWeekStart
+            )
+             ]]>
+            GROUP BY
+            TP.CUST_CODE
+        ),
+        TotalPoints AS (
+            SELECT
+            SUM(POINT_CHARGE) AS DPOINTCHARGE,
+            SUM(POINT_USE)*-1 AS DPOINTUSE,
+            SUM(POINT_USE_DAY)*-1 AS DPOINTUSEDAY,
+            SUM(POINT_USE_WEEK)*-1 AS DPOINTUSEWEEK
+            FROM
+            AggregatedPoints
+        )
+        SELECT
+            (SELECT to_char(nvl(SUM(T.POINT),0),'999,999,999')
+             FROM TCNT01_POINT T
+                 INNER JOIN TCNT01 T1
+                     ON T.CUST_CODE = T1.CUST_CODE
+             WHERE T1.USE_YN = '1'
+            <if test="custCode != null and !custCode.isEmpty()">
+                AND t.CUST_CODE =  #{custCode}
+            </if>
+             ) AS DPOINTSUM,
+            to_char(nvl(TP.DPOINTCHARGE,0),'999,999,999') as DPOINTCHARGE ,
+            to_char(nvl(TP.DPOINTUSE,0),'999,999,999')as DPOINTUSE,
+            to_char(nvl(TP.DPOINTUSEDAY,0),'999,999,999') as DPOINTUSEDAY,
+            to_char(nvl(TP.DPOINTUSEWEEK,0),'999,999,999') as DPOINTUSEWEEK
+        FROM
+        TotalPoints TP
+    </select>
+    <select id="getPointList" resultType="com.wiocrm.model.DashboardData">
+        WITH DateRange AS (
+            SELECT
+            TRUNC(SYSDATE, 'MM') AS MonthStart,
+            ADD_MONTHS(TRUNC(SYSDATE, 'MM'), 1) AS NextMonthStart
+            FROM DUAL
+        )
+        SELECT
+        SUM(A.POINT)*-1 AS SUM_POINT,
+        TO_CHAR(A.IN_DATE, 'YYYY-MM-DD') AS POINT_DATE
+        FROM
+        TCNT01_POINT A
+        JOIN TCNT01 B ON A.CUST_CODE = B.CUST_CODE
+        , DateRange D
+        WHERE
+        A.CALL_CODE IS NOT NULL
+        AND A.PERSON_CODE IS NOT NULL
+        AND A.POINT_CHARGE IS NULL
+        -- Uncomment and adjust the NOT IN clause as needed
+        -- AND A.CUST_CODE NOT IN ('P000000067', 'P000000094', 'P000000092', 'P000000197', 'P000000045')
+        AND B.USE_YN = '1'
+        <if test="custCode != null and !custCode.isEmpty()">
+            AND b.CUST_CODE =  #{custCode}
+        </if>
+        <![CDATA[
+        AND A.IN_DATE >= D.MonthStart
+
+        AND A.IN_DATE < D.NextMonthStart
+        ]]>
+        GROUP BY
+        TO_CHAR(A.IN_DATE, 'YYYY-MM-DD')
+        ORDER BY
+        POINT_DATE
+    </select>
+
+
+    <select id="getCustomList" resultType="Map">
+
+        SELECT
+        CUST_NAME,
+        TO_CHAR(NVL(SUM(DECODE(GUBN, '처리완료', COUNTCOM, 0)),0),'999,999,999') AS SUMCOM,
+        TO_CHAR(NVL(SUM(DECODE(GUBN, '월처리완료', COUNTCOM, 0)),0),'999,999,999') AS SUMCOMMONTH,
+        TO_CHAR(NVL(SUM(DECODE(GUBN, '미수신', COUNTCOM, 0)),0),'999,999,999') AS SUMMISS,
+        TO_CHAR(NVL(SUM(DECODE(GUBN, '월미수신', COUNTCOM, 0)),0),'999,999,999') AS SUMMISSMONTH,
+        TO_CHAR(NVL(SUM(DECODE(GUBN, '마일리지', COUNTCOM*-1, 0)),0),'999,999,999') AS SUMMILE,
+        TO_CHAR(NVL(SUM(DECODE(GUBN, '이번달', COUNTCOM*-1, 0)),0),'999,999,999') AS SUMMONTH,
+        TO_CHAR(NVL(SUM(DECODE(GUBN, '미수신', COUNTCOM*(SELECT CALL_POINT FROM TPRJ01 WHERE CUST_CODE =A.CUST_CODE AND PROJECT_CODE =A.PROJECT_CODE), 0)),0),'999,999,999') AS SUMLOSS,
+        TO_CHAR(NVL(SUM(DECODE(GUBN, '월미수신', COUNTCOM*(SELECT CALL_POINT FROM TPRJ01 WHERE CUST_CODE =A.CUST_CODE AND PROJECT_CODE =A.PROJECT_CODE), 0)),0),'999,999,999') AS SUMLOSSMONTH
+        FROM
+        (
+        SELECT '처리완료' GUBN
+        ,(SELECT CUST_NAME FROM TCNT01 WHERE CUST_CODE  = A.CUST_CODE) CUST_NAME
+        ,COUNT(IN_DATE) COUNTCOM    ,cust_code ,PROJECT_CODE
+        FROM TBND01 A
+        WHERE 1=1
+        AND PRC_GUBN IN ('1', '2')
+        AND TO_CHAR(IN_DATE, 'YYYYMMDD') = TO_CHAR(SYSDATE,'YYYYMMDD')
+        GROUP BY CUST_CODE,PROJECT_CODE
+        UNION ALL
+        SELECT '월처리완료' GUBN
+        ,(SELECT CUST_NAME FROM TCNT01 WHERE CUST_CODE  = A.CUST_CODE) CUST_NAME
+        ,COUNT(IN_DATE) COUNTCOM    ,cust_code ,PROJECT_CODE
+        FROM TBND01 A
+        WHERE 1=1
+        AND PRC_GUBN IN ('1', '2')
+        AND TO_CHAR(IN_DATE, 'YYYYMM') = TO_CHAR(SYSDATE,'YYYYMM')
+        GROUP BY CUST_CODE,PROJECT_CODE
+        UNION ALL
+        SELECT '미수신'GUBN
+        ,(SELECT CUST_NAME FROM TCNT01 WHERE CUST_CODE  = A.CUST_CODE) CUST_NAME
+        ,COUNT(CALLDATE)  COUNTCOM  ,cust_code ,PROJECT_CODE
+        FROM (SELECT B.CALLDATE,B.CLID,B.PERSON_CODE,B.CUST_CODE,B.PROJECT_CODE,B.empno,B.INCALL_NO
+        ,(select emp_name from temp01 where empno =B.empno) emp_name
+        ,1 COUNT,B.RESULT,B.CONTEXT
+        FROM
+        (SELECT MAX(CALLDATE)CALL_DATE ,CLID,CUST_CODE,PROJECT_CODE
+        FROM CALL_LOG_D
+        WHERE substr(calldate,0,10)= TO_CHAR(SYSDATE,'YYYY-MM-DD')
+        GROUP BY SUBSTR(calldate,0,10) , CLID,CUST_CODE,PROJECT_CODE) A,CALL_LOG_D B
+        WHERE A.CALL_DATE = B.CALLDATE
+        AND substr(calldate,0,10) =  TO_CHAR(SYSDATE,'YYYY-MM-DD')
+        AND A.CLID = B.CLID
+        <![CDATA[
+         AND RESULT <>'ANSWER'
+        ]]>
+        ORDER BY CALLDATE DESC) a
+        WHERE 1=1
+        AND CUST_CODE IS NOT NULL
+        GROUP BY CUST_CODE,PROJECT_CODE
+        UNION ALL
+        SELECT '월미수신'GUBN
+        ,(SELECT CUST_NAME FROM TCNT01 WHERE CUST_CODE  = A.CUST_CODE) CUST_NAME
+        ,COUNT(CALLDATE)  COUNTCOM  ,cust_code ,PROJECT_CODE
+        FROM (SELECT B.CALLDATE,B.CLID,B.PERSON_CODE,B.CUST_CODE,B.PROJECT_CODE,B.empno,B.INCALL_NO
+        ,(select emp_name from temp01 where empno =B.empno) emp_name
+        ,1 COUNT,B.RESULT,B.CONTEXT
+        FROM
+        (SELECT MAX(CALLDATE)CALL_DATE ,CLID,CUST_CODE,PROJECT_CODE
+        FROM CALL_LOG_D
+        WHERE substr(calldate,0,7)= TO_CHAR(SYSDATE,'YYYY-MM')
+        GROUP BY SUBSTR(calldate,0,7) , CLID,CUST_CODE,PROJECT_CODE) A,CALL_LOG_D B
+        WHERE A.CALL_DATE = B.CALLDATE
+        AND substr(calldate,0,7) =  TO_CHAR(SYSDATE,'YYYY-MM')
+        AND A.CLID = B.CLID
+<![CDATA[
+          AND RESULT <>'ANSWER'
+        ]]>
+        ORDER BY CALLDATE DESC) a
+        WHERE 1=1
+        AND CUST_CODE IS NOT NULL
+        GROUP BY CUST_CODE,PROJECT_CODE
+        UNION ALL
+        SELECT
+        '마일리지' GUBN,
+        (SELECT CUST_NAME FROM TCNT01 WHERE CUST_CODE  = A.CUST_CODE) CUST_NAME,
+        SUM(POINT) COUNTCOM ,cust_code ,PROJCT_CODE PROJeCT_CODE
+        FROM TCNT01_POINT A
+        WHERE   CALL_CODE IS NOT NULL
+        AND TO_CHAR(IN_DATE, 'YYYYMMDD') = TO_CHAR(SYSDATE, 'YYYYMMDD')
+        GROUP BY CUST_CODE ,PROJCT_CODE
+        UNION ALL
+        SELECT
+        '이번달' GUBN,
+        (SELECT CUST_NAME FROM TCNT01 WHERE CUST_CODE  = A.CUST_CODE) CUST_NAME,
+        SUM(POINT) COUNTCOM ,cust_code ,PROJCT_CODE PROJeCT_CODE
+        FROM TCNT01_POINT A
+        WHERE   CALL_CODE IS NOT NULL
+        AND TO_CHAR(IN_DATE, 'YYYYMM') = TO_CHAR(SYSDATE, 'YYYYMM')
+        GROUP BY CUST_CODE ,PROJCT_CODE
+        ) A
+        GROUP BY CUST_NAME
+</select>
+</mapper>

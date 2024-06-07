@@ -56,12 +56,9 @@ public class CustomUserDetailsService implements UserDetailsService {
         if (user != null) {
             userId = user.getUserId();  // Assuming 'getUserId()' method exists in your User class
             System.out.println("userId from session222============================================================" + userId);
-        }
-
-        if (userId != null) {
-            System.out.println("userId from session333============================================================" + userId);
             return userMapper.findUserInfo(userId);
         }
+
 
         return null;
     }

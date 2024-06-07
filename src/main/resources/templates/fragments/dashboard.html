@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
-
 <div th:fragment="content" id="dashboard-content">
   <style>
     body {
@@ -28,6 +27,7 @@
       height: 200px;
     }
   </style>
+
   <div class="content-header">
     <div class="container-fluid">
       <div class="row mb-2">
@@ -42,36 +42,36 @@
       <div class="col-md-3">
         <div class="card">
           <div class="card-body">
-            <h5>Customers</h5>
-            <h3>36,254</h3>
-            <p class="small-text text-success"><i class="fas fa-arrow-up"></i> 한글 테스트</p>
+            <h5>오늘 처리</h5>
+            <h5>36,254 건</h5>
+            <p class="small-text text-success"><i class="fas fa-arrow-up"></i> 전일 건</p>
           </div>
         </div>
       </div>
       <div class="col-md-3">
         <div class="card">
           <div class="card-body">
-            <h5>Orders</h5>
+            <h5>긴급</h5>
             <h5>5,543</h5>
-              <p class="small-text text-danger"><i class="fas fa-arrow-down"></i> 1.08% Since last month</p>
+            <p class="small-text text-danger"><i class="fas fa-arrow-down"></i> 이번달 건</p>
           </div>
         </div>
       </div>
       <div class="col-md-3">
         <div class="card">
           <div class="card-body">
-            <h5>Revenue</h5>
-            <h3>$6,254</h3>
-            <p class="small-text text-danger"><i class="fas fa-arrow-down"></i> 7.00% Since last month</p>
+            <h5>수수료</h5>
+            <h5>6,254 원</h5>
+            <p class="small-text text-danger"><i class="fas fa-arrow-down"></i> 7.00% 전달 기준</p>
           </div>
         </div>
       </div>
       <div class="col-md-3">
         <div class="card">
           <div class="card-body">
-            <h5>Growth</h5>
-            <h3>+ 30.56%</h3>
-            <p class="small-text text-success"><i class="fas fa-arrow-up"></i> 4.87% Since last month</p>
+            <h5>이번달 처리 </h5>
+            <h5>+ 30.56%</h5>
+            <p class="small-text text-success"><i class="fas fa-arrow-up"></i> 4.87% 전달 기준</p>
           </div>
         </div>
       </div>
@@ -81,41 +81,41 @@
       <div class="col-md-6">
         <div class="card">
           <div class="card-body">
-            <h5>Revenue</h5>
+            <h5>주간 수수료</h5>
             <div class="row">
               <div class="col-md-6">
-                <h6>Current Week</h6>
+                <h6>이번주 </h6>
                 <h3>$58,254</h3>
               </div>
               <div class="col-md-6">
-                <h6>Previous Week</h6>
+                <h6>전주 </h6>
                 <h3>$69,524</h3>
               </div>
             </div>
-            <div class="chart bg-light"></div>
+            <canvas id="weeklyFeeChart" class="chart bg-light"></canvas>
           </div>
         </div>
       </div>
       <div class="col-md-6">
         <div class="card">
           <div class="card-body">
-            <h5>Revenue by Location</h5>
-            <div class="chart bg-light"></div>
+            <h5>일간 처리건</h5>
+            <canvas id="dailyTasksChart" class="chart bg-light"></canvas>
             <div class="row mt-3">
               <div class="col-md-6">
-                <p>New York</p>
+                <p>일반</p>
                 <div class="progress">
                   <div class="progress-bar" style="width:72%">72k</div>
                 </div>
               </div>
               <div class="col-md-6">
-                <p>San Francisco</p>
+                <p>배송</p>
                 <div class="progress">
                   <div class="progress-bar" style="width:39%">39k</div>
                 </div>
               </div>
               <div class="col-md-6">
-                <p>Sydney</p>
+                <p>환불</p>
                 <div class="progress">
                   <div class="progress-bar" style="width:25%">25k</div>
                 </div>
@@ -126,5 +126,59 @@
       </div>
     </div>
   </div>
+
+  <!-- Chart.js 라이브러리 로드 -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    $(document).ready(function () {
+      // Chart.js 그래프 초기화
+      var weeklyFeeCtx = document.getElementById('weeklyFeeChart').getContext('2d');
+      var dailyTasksCtx = document.getElementById('dailyTasksChart').getContext('2d');
+
+      var weeklyFeeChart = new Chart(weeklyFeeCtx, {
+        type: 'line',
+        data: {
+          labels: ['월', '화', '수', '목', '금', '토', '일'],
+          datasets: [{
+            label: '주간 수수료',
+            data: [1200, 1900, 3000, 500, 2000, 3000, 4500],
+            backgroundColor: 'rgba(54, 162, 235, 0.2)',
+            borderColor: 'rgba(54, 162, 235, 1)',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y: {
+              beginAtZero: true
+            }
+          }
+        }
+      });
+
+      var dailyTasksChart = new Chart(dailyTasksCtx, {
+        type: 'bar',
+        data: {
+          labels: ['일', '월', '화', '수', '목', '금', '토'],
+          datasets: [{
+            label: '일간 처리건',
+            data: [65, 59, 80, 81, 56, 55, 40],
+            backgroundColor: 'rgba(255, 99, 132, 0.2)',
+            borderColor: 'rgba(255, 99, 132, 1)',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y: {
+              beginAtZero: true
+            }
+          }
+        }
+      });
+    });
+  </script>
 </div>
 </html>
