@@ -52,14 +52,20 @@ public class CustomUserDetailsService implements UserDetailsService {
         HttpSession session = request.getSession();
         User user = (User) session.getAttribute("user");
         String userId = null;
+        String userGubn = null;
         System.out.println("userId from session111============================================================" + userId);
         if (user != null) {
             userId = user.getUserId();  // Assuming 'getUserId()' method exists in your User class
+
             System.out.println("userId from session222============================================================" + userId);
             return userMapper.findUserInfo(userId);
         }
 
 
         return null;
+    }
+    public UserInfo findUserInfoSession(String userId) {
+        // 사용자 추가 정보를 가져오는 로직 추가
+        return userMapper.findUserInfo(userId);
     }
 }

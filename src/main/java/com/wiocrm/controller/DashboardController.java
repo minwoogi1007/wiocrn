@@ -19,6 +19,7 @@ public class DashboardController {
         this.dashboardService = dashboardService;
     }
 
+    //
     @GetMapping("/api/dashboard-data")
     public ResponseEntity<Map<String, Object>> getDashboardData(Principal principal) {
         // SecurityContext에서 인증 객체를 가져옵니다.

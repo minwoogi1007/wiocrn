@@ -28,9 +28,7 @@
         --and b.context <> 'outbound'
         and a.cust_code is not null
       ]]>
-        <if test="custCode != null and !custCode.isEmpty()">
-            AND a.CUST_CODE = #{custCode}
-        </if>
+
         )  todayMiss,
         (
         SELECT count(A.CUST_CODE)
@@ -38,9 +36,7 @@
         WHERE 1=1
         AND PRC_GUBN = '2'
         AND TO_CHAR(IN_DATE, 'YYYYMMDD') = TO_CHAR(SYSDATE,'YYYYMMDD')
-        <if test="custCode != null and !custCode.isEmpty()">
-            AND CUST_CODE = #{custCode}
-        </if>
+
         )todayCom,
         (
         SELECT count(A.CUST_CODE)

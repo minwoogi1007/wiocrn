@@ -3,6 +3,7 @@ package com.wiocrm.config;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wiocrm.model.CustomUserDetails;
 import com.wiocrm.model.User;
+import com.wiocrm.model.UserInfo;
 import com.wiocrm.service.CustomUserDetailsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -85,10 +86,17 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 ObjectMapper mapper = new ObjectMapper();
                 String menuListJson = mapper.writeValueAsString(menuData);
 
+                // findUserInfo를 호출하여 사용자 추가 정보를 가져옴
+                UserInfo userInfo = userDetailsService.findUserInfoSession(user.getUserId());
+
+
                 HttpSession session = request.getSession();
                 session.setAttribute("user", user);
                 System.out.println("user============================================================"+user.getUserId());
+                System.out.println("user============================================================"+user.getConfirmYn());
+
                 session.setAttribute("menuListJson", menuListJson);
+                session.setAttribute("userPosition", userInfo.getPOSITION()); // 추가된 부분
 
                 response.sendRedirect("/layout");
             }
