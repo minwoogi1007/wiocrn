@@ -195,17 +195,20 @@
       $('#dynamic-menu').html(menuHtml);
     }
 
-    $('#content-placeholder').load('/dashboard');  // 기본 경로 로드
+    function loadContent(url) {
+      $('#content-placeholder').load(url);
+    }
+
+    $('#content-placeholder').load('/dashboard');
 
     try {
       var parsedMenuData = JSON.parse(menuData);
       createMenu(parsedMenuData);
     } catch (e) {
-      console.error('Failed to parse menu data:', e);  // JSON 파싱 오류 확인
+      console.error('Failed to parse menu data:', e);
     }
 
-    // 대메뉴 클릭 시 다른 대메뉴 닫기
-    $(document).on('click', '.top-menu', function (e) {
+    $(document).on('click', '.top-menu, .mid-menu', function (e) {
       e.preventDefault();
       var $this = $(this);
       var $parent = $this.closest('.has-treeview');
@@ -215,45 +218,29 @@
         $parent.removeClass('menu-open');
         $this.next('.nav-treeview').slideUp();
       } else {
-        // 다른 모든 대메뉴 닫기
         $siblings.removeClass('menu-open');
         $siblings.find('.nav-treeview').slideUp();
-
-        // 현재 대메뉴 열기
         $parent.addClass('menu-open');
         $this.next('.nav-treeview').slideDown();
       }
     });
 
-    // 중메뉴 클릭 시 다른 중메뉴 닫기
-    $(document).on('click', '.mid-menu', function (e) {
-      e.preventDefault();
-      var $this = $(this);
-      var $parent = $this.closest('.has-treeview');
-      var $siblings = $parent.siblings();
-
-      if ($parent.hasClass('menu-open')) {
-        $parent.removeClass('menu-open');
-        $this.next('.nav-treeview').slideUp();
-      } else {
-        // 현재 대메뉴 내 다른 중메뉴 닫기
-        $siblings.removeClass('menu-open');
-        $siblings.find('.nav-treeview').slideUp();
-
-        // 현재 중메뉴 열기
-        $parent.addClass('menu-open');
-        $this.next('.nav-treeview').slideDown();
-      }
-    });
-
-    // 소메뉴 클릭 시 컨텐츠 로드 및 활성화
     $(document).on('click', '.nav-link[data-url]', function (e) {
       e.preventDefault();
       var url = $(this).data('url');
       if (url) {
-        $('#content-placeholder').load(url);
+        loadContent(url);
         $('.nav-link[data-url]').removeClass('active');
         $(this).addClass('active');
+        if (history.pushState) {
+          history.pushState({url: url}, '', url);
+        }
+      }
+    });
+
+    window.addEventListener('popstate', function (event) {
+      if (event.state && event.state.url) {
+        loadContent(event.state.url);
       }
     });
   });

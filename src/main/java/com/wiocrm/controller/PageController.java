@@ -66,4 +66,90 @@ public class PageController {
         model.addAttribute("menuListJson", menuListJson);
         return "layout";
     }
+
+    @GetMapping("/consultant/type/status")
+    public String consultant_type_status(HttpSession session, Model model) {
+        return "fragments/consultant_type_status :: content";
+    }
+
+    @GetMapping("/consultant/progress/status")
+    public String consultant_progress_status(HttpSession session, Model model) {
+        return "fragments/consultant_progress_status :: content";
+    }
+
+    @GetMapping("/company/type/status")
+    public String company_type_status(HttpSession session, Model model) {
+        return "fragments/company_type_status :: content";
+    }
+
+    @GetMapping("/company/progress/status")
+    public String company_progress_status(HttpSession session, Model model) {
+        return "fragments/company_progress_status :: content";
+    }
+
+    @GetMapping("/call/processing/status")
+    public String call_processing_status(HttpSession session, Model model) {
+        return "fragments/call_processing_status :: content";
+    }
+
+    @GetMapping("/company/time/consulting/status")
+    public String company_time_consulting_status(HttpSession session, Model model) {
+        return "fragments/company_time_consulting_status :: content";
+    }
+
+    @GetMapping("/consultant/time/consulting/status")
+    public String consultant_time_consulting_status(HttpSession session, Model model) {
+        return "fragments/consultant_time_consulting_status :: content";
+    }
+
+    @GetMapping("/company/time/call/status")
+    public String company_time_call_status(HttpSession session, Model model) {
+        return "fragments/company_time_call_status :: content";
+    }
+
+    @GetMapping("/company/consultant/consulting/status")
+    public String company_consultant_consulting_status(HttpSession session, Model model) {
+        return "fragments/company_consultant_consulting_status :: content";
+    }
+
+    @GetMapping("/unreceived/customer/count")
+    public String unreceived_customer_count(HttpSession session, Model model) {
+        return "fragments/unreceived_customer_count :: content";
+    }
+
+    @GetMapping("/company/purchase/status")
+    public String company_purchase_status(HttpSession session, Model model) {
+        return "fragments/statCall :: content";
+    }
+
+    @GetMapping("/new/consulting/type/status")
+    public String new_consulting_type_status(HttpSession session, Model model) {
+        return "fragments/new_consulting_type_status :: content";
+    }
+
+    @GetMapping("/new/call/volume/status")
+    public String call_volume_status(HttpSession session, Model model) {
+        return "fragments/call_volume_status :: content";
+    }
+
+    @GetMapping("/consultant/company/consulting/status")
+    public String consultant_company_consulting_status(HttpSession session, Model model) {
+        return "fragments/consultant_company_consulting_status :: content";
+    }
+
+    @GetMapping("/company/consultant/involved/status")
+    public String company_consultant_involved_status(HttpSession session, Model model) {
+        return "fragments/company_consultant_involved_status :: content";
+    }
+
+    @GetMapping("/call/status")
+    public String call_status(HttpSession session, Model model) {
+        return "fragments/call_status :: content";
+    }
+
+    @GetMapping("/unreceived/status")
+    public String unreceived_status(HttpSession session, Model model) {
+        return "fragments/unreceived_status :: content";
+    }
+
 }
