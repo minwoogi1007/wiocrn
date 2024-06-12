@@ -1,30 +1,77 @@
 <!DOCTYPE html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <div th:fragment="content" id="dashboard-content">
+
   <style>
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background-color: #f7f7f7;
+      background-color: #f0f2f5;
       margin: 0;
-      padding: 0;
-    }
-    .container-fluid {
       padding: 20px;
+    }
+    .container {
+      display: flex;
+      flex-wrap: wrap;
     }
     .card {
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      background-color: #fff;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
       border: none;
-      border-radius: 10px;
-      margin-bottom: 20px;
-    }
-    .card .card-body {
+      border-radius: 20px;
+      margin: 10px;
       padding: 20px;
+      flex: 1 1 calc(25% - 20px);
+      min-width: 200px;
     }
-    .small-text {
-      font-size: 0.8em;
+    .card h5 {
+      margin: 0;
+      font-size: 1em;
+      color: #ffffff;
+    }
+    .card .value {
+      font-size: 2em;
+      margin-top: 10px;
+      color: #ffffff;
+    }
+    .card .change {
+      font-size: 0.9em;
+      color: #ffffff;
+    }
+    .chart-container {
+      background-color: #fff;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      border: none;
+      border-radius: 20px;
+      margin: 10px;
+      padding: 20px;
+      flex: 1 1 calc(50% - 20px);
+    }
+    .chart-container h5 {
+      margin: 0;
+      font-size: 1em;
+      color: #6c757d;
     }
     .chart {
-      height: 200px;
+      height: 150px;
+    }
+    .scrollable-content {
+      max-height: 200px;
+      overflow-y: auto;
+      margin-top: 10px;
+    }
+    .scrollable-content ul {
+      list-style-type: none;
+      padding: 0;
+    }
+    .scrollable-content li {
+      padding: 8px 0;
+      border-bottom: 1px solid #ddd;
+      color: #343a40;
+    }
+
+    .card.visits {
+      background-color: #1e88e5;
+      color: #ffffff;
     }
   </style>
 
@@ -33,7 +80,6 @@
       <div class="row mb-2">
         <div class="col-sm-6">
           <h1 class="m-0">DASH BOARD</h1>
-
         </div>
       </div>
     </div>
@@ -41,144 +87,254 @@
   <div class="container-fluid">
     <div class="row">
       <div class="col-md-3">
-        <div class="card">
-          <div class="card-body">
-            <h5>오늘 처리</h5>
-            <h5>36,254 건</h5>
-            <p class="small-text text-success"><i class="fas fa-arrow-up"></i> 전일 건</p>
-          </div>
+        <div class="card visits">
+          <h5>Views</h5>
+          <div class="value">721K</div>
+          <p class="small-text text-success"><i class="fas fa-arrow-up"></i> 전일 건</p>
+          <div class="change">+11.01%</div>
         </div>
       </div>
       <div class="col-md-3">
-        <div class="card">
-          <div class="card-body">
-            <h5>긴급</h5>
-            <h5>5,543</h5>
-            <p class="small-text text-danger"><i class="fas fa-arrow-down"></i> 이번달 건</p>
-          </div>
+        <div class="card visits">
+          <h5>Visits</h5>
+          <div class="value">367K</div>
+          <p class="small-text text-success"><i class="fas fa-arrow-up"></i> 전일 건</p>
+          <div class="change">+9.15%</div>
         </div>
       </div>
       <div class="col-md-3">
-        <div class="card">
-          <div class="card-body">
-            <h5>수수료</h5>
-            <h5>6,254 원</h5>
-            <p class="small-text text-danger"><i class="fas fa-arrow-down"></i> 7.00% 전달 기준</p>
-          </div>
+        <div class="card visits">
+          <h5>New Users</h5>
+          <div class="value">1,156</div>
+          <p class="small-text text-danger"><i class="fas fa-arrow-down"></i> 이번달 건</p>
+          <div class="change">-0.56%</div>
         </div>
       </div>
       <div class="col-md-3">
-        <div class="card">
-          <div class="card-body">
-            <h5>이번달 처리 </h5>
-            <h5>+ 30.56%</h5>
-            <p class="small-text text-success"><i class="fas fa-arrow-up"></i> 4.87% 전달 기준</p>
+        <div class="card visits">
+          <h5>Active Users</h5>
+          <div class="value">239K</div>
+          <p class="small-text text-danger"><i class="fas fa-arrow-down"></i> 이번달 건</p>
+          <div class="change">-1.48%</div>
+        </div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-md-6">
+      <div class="chart-container">
+        <h5>주간 수수료</h5>
+        <canvas id="weeklyFeeChart" class="chart"></canvas>
+      </div>
+      </div>
+        <div class="col-md-6">
+          <div class="chart-container">
+            <h5>일간 처리건</h5>
+            <canvas id="dailyTasksChart" class="chart"></canvas>
           </div>
+        </div>
+    </div>
+
+    <div class="row">
+      <div class="col-md-6">
+        <div class="chart-container">
+          <h5>Traffic by Device</h5>
+          <canvas id="deviceTrafficChart" class="chart"></canvas>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="chart-container">
+          <h5>Traffic by Location</h5>
+          <canvas id="locationTrafficChart" class="chart"></canvas>
         </div>
       </div>
     </div>
 
     <div class="row">
-      <div class="col-md-6">
-        <div class="card">
-          <div class="card-body">
-            <h5>주간 수수료</h5>
-            <div class="row">
-              <div class="col-md-6">
-                <h6>이번주 </h6>
-                <h3>$58,254</h3>
-              </div>
-              <div class="col-md-6">
-                <h6>전주 </h6>
-                <h3>$69,524</h3>
-              </div>
-            </div>
-            <canvas id="weeklyFeeChart" class="chart bg-light"></canvas>
-          </div>
-        </div>
-      </div>
-      <div class="col-md-6">
-        <div class="card">
-          <div class="card-body">
-            <h5>일간 처리건</h5>
-            <canvas id="dailyTasksChart" class="chart bg-light"></canvas>
-            <div class="row mt-3">
-              <div class="col-md-6">
-                <p>일반</p>
-                <div class="progress">
-                  <div class="progress-bar" style="width:72%">72k</div>
-                </div>
-              </div>
-              <div class="col-md-6">
-                <p>배송</p>
-                <div class="progress">
-                  <div class="progress-bar" style="width:39%">39k</div>
-                </div>
-              </div>
-              <div class="col-md-6">
-                <p>환불</p>
-                <div class="progress">
-                  <div class="progress-bar" style="width:25%">25k</div>
-                </div>
-              </div>
-            </div>
+      <div class="col-md-3">
+        <div class="chart-container">
+          <h5>게시판 최신 글</h5>
+          <div class="scrollable-content" id="scrollable-content">
+            <ul>
+              <li>게시판 글 제목 1</li>
+              <li>게시판 글 제목 2</li>
+              <li>게시판 글 제목 3</li>
+              <li>게시판 글 제목 4</li>
+              <li>게시판 글 제목 5</li>
+              <li>게시판 글 제목 6</li>
+              <li>게시판 글 제목 7</li>
+              <li>게시판 글 제목 8</li>
+              <li>게시판 글 제목 9</li>
+              <li>게시판 글 제목 10</li>
+            </ul>
           </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Chart.js 라이브러리 로드 -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.min.js"></script>
   <script>
-    $(document).ready(function () {
-      // Chart.js 그래프 초기화
-      var weeklyFeeCtx = document.getElementById('weeklyFeeChart').getContext('2d');
-      var dailyTasksCtx = document.getElementById('dailyTasksChart').getContext('2d');
+    $(function() {
+      console.log('jQuery ready 이벤트 발생');
 
-      var weeklyFeeChart = new Chart(weeklyFeeCtx, {
-        type: 'line',
-        data: {
-          labels: ['월', '화', '수', '목', '금', '토', '일'],
-          datasets: [{
-            label: '주간 수수료',
-            data: [1200, 1900, 3000, 500, 2000, 3000, 4500],
-            backgroundColor: 'rgba(54, 162, 235, 0.2)',
-            borderColor: 'rgba(54, 162, 235, 1)',
-            borderWidth: 1
-          }]
-        },
-        options: {
-          responsive: true,
-          scales: {
-            y: {
-              beginAtZero: true
-            }
-          }
-        }
-      });
+      var weeklyFeeCanvas = document.getElementById('weeklyFeeChart');
+      var dailyTasksCanvas = document.getElementById('dailyTasksChart');
+      var deviceTrafficCanvas = document.getElementById('deviceTrafficChart');
+      var locationTrafficCanvas = document.getElementById('locationTrafficChart');
 
-      var dailyTasksChart = new Chart(dailyTasksCtx, {
-        type: 'bar',
-        data: {
-          labels: ['일', '월', '화', '수', '목', '금', '토'],
-          datasets: [{
-            label: '일간 처리건',
-            data: [65, 59, 80, 81, 56, 55, 40],
-            backgroundColor: 'rgba(255, 99, 132, 0.2)',
-            borderColor: 'rgba(255, 99, 132, 1)',
-            borderWidth: 1
-          }]
-        },
-        options: {
-          responsive: true,
-          scales: {
-            y: {
-              beginAtZero: true
+      if (weeklyFeeCanvas && dailyTasksCanvas && deviceTrafficCanvas && locationTrafficCanvas) {
+        console.log('캔버스 요소를 찾았습니다.');
+
+        var weeklyFeeCtx = weeklyFeeCanvas.getContext('2d');
+        var dailyTasksCtx = dailyTasksCanvas.getContext('2d');
+        var deviceTrafficCtx = deviceTrafficCanvas.getContext('2d');
+        var locationTrafficCtx = locationTrafficCanvas.getContext('2d');
+
+        if (weeklyFeeCtx && dailyTasksCtx && deviceTrafficCtx && locationTrafficCtx) {
+          console.log('캔버스 컨텍스트를 초기화했습니다.');
+
+          var weeklyFeeChart = new Chart(weeklyFeeCtx, {
+            type: 'line',
+            data: {
+              labels: ['월', '화', '수', '목', '금', '토', '일'],
+              datasets: [{
+                label: '주간 수수료',
+                data: [1200, 1900, 3000, 500, 2000, 3000, 4500],
+                backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 1
+              }]
+            },
+            options: {
+              responsive: true,
+              scales: {
+                yAxes: [{
+                  ticks: {
+                    beginAtZero: true
+                  }
+                }]
+              }
             }
+          });
+
+          var today = new Date();
+          var labels = [];
+          var data = [];
+          for (var i = 1; i <= today.getDate(); i++) {
+            labels.push(i + '일');
+            data.push(Math.floor(Math.random() * 100));
           }
+
+          var dailyTasksChart = new Chart(dailyTasksCtx, {
+            type: 'bar',
+            data: {
+              labels: labels,
+              datasets: [{
+                label: '일간 처리건',
+                data: data,
+                backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                borderColor: 'rgba(255, 99, 132, 1)',
+                borderWidth: 1
+              }]
+            },
+            options: {
+              responsive: true,
+              scales: {
+                yAxes: [{
+                  ticks: {
+                    beginAtZero: true
+                  }
+                }]
+              }
+            }
+          });
+
+          var deviceTrafficChart = new Chart(deviceTrafficCtx, {
+            type: 'bar',
+            data: {
+              labels: ['Linux', 'Mac', 'iOS', 'Windows', 'Android', 'Other'],
+              datasets: [{
+                label: 'Traffic by Device',
+                data: [100, 200, 300, 400, 500, 600],
+                backgroundColor: [
+                  'rgba(75, 192, 192, 0.2)',
+                  'rgba(54, 162, 235, 0.2)',
+                  'rgba(255, 206, 86, 0.2)',
+                  'rgba(75, 192, 192, 0.2)',
+                  'rgba(153, 102, 255, 0.2)',
+                  'rgba(255, 159, 64, 0.2)'
+                ],
+                borderColor: [
+                  'rgba(75, 192, 192, 1)',
+                  'rgba(54, 162, 235, 1)',
+                  'rgba(255, 206, 86, 1)',
+                  'rgba(75, 192, 192, 1)',
+                  'rgba(153, 102, 255, 1)',
+                  'rgba(255, 159, 64, 1)'
+                ],
+                borderWidth: 1
+              }]
+            },
+            options: {
+              responsive: true,
+              scales: {
+                yAxes: [{
+                  ticks: {
+                    beginAtZero: true
+                  }
+                }]
+              }
+            }
+          });
+
+          var locationTrafficChart = new Chart(locationTrafficCtx, {
+            type: 'doughnut',
+            data: {
+              labels: ['United States', 'Canada', 'Mexico', 'Other'],
+              datasets: [{
+                label: 'Traffic by Location',
+                data: [38.5, 22.5, 30.8, 8.1],
+                backgroundColor: [
+                  'rgba(75, 192, 192, 0.2)',
+                  'rgba(54, 162, 235, 0.2)',
+                  'rgba(255, 206, 86, 0.2)',
+                  'rgba(153, 102, 255, 0.2)'
+                ],
+                borderColor: [
+                  'rgba(75, 192, 192, 1)',
+                  'rgba(54, 162, 235, 1)',
+                  'rgba(255, 206, 86, 1)',
+                  'rgba(153, 102, 255, 1)'
+                ],
+                borderWidth: 1
+              }]
+            },
+            options: {
+              responsive: true
+            }
+          });
+
+          console.log('차트를 성공적으로 생성했습니다.');
+        } else {
+          console.error('캔버스 컨텍스트 초기화 실패');
         }
-      });
+      } else {
+        console.error('캔버스 요소를 찾을 수 없습니다.');
+      }
+
+      var scrollableContent = document.getElementById('scrollable-content');
+      var scrollSpeed = 0.5;
+
+      function autoScroll() {
+        scrollableContent.scrollTop += scrollSpeed;
+        if (scrollableContent.scrollTop + scrollableContent.clientHeight >= scrollableContent.scrollHeight) {
+          scrollableContent.scrollTop = 0;
+        }
+        requestAnimationFrame(autoScroll);
+      }
+
+      autoScroll();
     });
   </script>
 </div>
