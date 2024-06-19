@@ -76,7 +76,36 @@
       top: -9999px;
     }.chart {
        height: 200px;
-     }
+     }.modal-backdrop {
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 1040;
+        width: 100vw;
+        height: 100vh;
+        background-color: rgba(0, 0, 0, 0.5);
+      }
+
+    .modal-open .modal {
+      overflow-x: hidden;
+      overflow-y: auto;
+    }
+
+    .modal-header {
+      background-color: #1681ec;
+      color: #fff;
+    }
+
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      padding: 0.75rem;
+      background-color: #f8f9fa;
+    }
+
+    .modal-footer .btn {
+      margin-left: 0.5rem;
+    }
 
   </style>
 </head>
@@ -107,6 +136,8 @@
     <strong>&copy; 2024 WIO. All rights reserved.</strong>
   </footer>
 </div>
+<!-- Include Modal HTML -->
+<div th:replace="modal/callInModal :: modal"></div>
 
 <script th:inline="javascript">
   /*<![CDATA[*/

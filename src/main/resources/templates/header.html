@@ -249,6 +249,151 @@
     window.onload = function() {
       initializeAndConnect();
     }
+
+    function setInfoval(ch1,ch2,iscall,evt,Insp,act,hand){
+
+      if(evt =="RINGEVENT"){
+
+       // makeCallUinqId();
+
+        CUSTTELNO=Insp["CALLERID"];
+        INLINENO=Insp["INEXTEN"];
+        if(Insp["ISDIAL"]=="0"){ 		//null 이면 outbound-->
+
+          call_btn_cont("IC");
+          callPhone(Insp["INEXTEN"],Insp["CALLERID"],'NO');// 전화 수신 팝업
+          pNo=Insp["INEXTEN"];
+          cNo=Insp["CALLERID"];
+
+        }else if(Insp["ISDIAL"]=="1"){ //발신
+
+          //callCstmHit(Insp["INEXTEN"],Insp["CALLERID"],Insp["UNIQUEID"]);
+
+          /*
+          if(CSTMNO !=""){ //기존고객일경우
+                  callCstmHit(Insp["INEXTEN"],Insp["CALLERID"],COMPCD,CSTMNO,'2','2',Insp["UNIQUEID"]);
+          }else {
+              try{
+                  callhit(Insp["INEXTEN"],Insp["CALLERID"],'2','A',Insp["UNIQUEID"]);  	//아웃바운드는 통화 성공시 업데이트 하자 -->
+              }catch(e){
+                  alert("callhit=>"+e);
+                  location.reload();
+              }
+          }
+          */
+        }
+      }
+      if(evt =="CHANNELLIST"){
+
+        //makeCallUinqId();
+
+        if(hand =='HAND'){
+          //alert('수신팝업 호출');
+          err_PopUpAnswer(Insp["CALLER1ID"],Insp["INEXTEN"]);
+        }
+
+
+        if(Insp["INEXTEN"]!= "null"){ 		//null 이면 outbound-->
+          try{
+            DBSEQ = Insp["UNIQUEID2"];
+            callUphit(Insp["INEXTEN"],Insp["CALLER1ID"],'1','B',Insp["UNIQUEID1"],Insp["UNIQUEID2"]);
+          }catch(e){
+            //alert("callUphit  e==>"+e);
+           // location.reload();
+          }
+        }else{
+
+          DBSEQ = Insp["UNIQUEID1"];
+          if(CSTMNO !=""){ 	//기존고객일경우
+            //top.conterFrame.ListForm.elements["value(CALLSEQ)"].value =Insp["UNIQUEID1"];
+            //callCstmUpHit(Insp["CALLER1ID"],Insp["CALLER2ID"],COMPCD,CSTMNO,'2','1',Insp["UNIQUEID1"],Insp["UNIQUEID2"]);
+          }else {
+            //DBSEQ = Insp["UNIQUEID1"];
+            //callOutUphit(Insp["CALLER1ID"],Insp["CALLER2ID"],Insp["UNIQUEID2"]);  	//아웃바운드는 통화 성공시 업데이트 하자 -->
+          }
+          callOutUphit(Insp["CALLER1ID"],Insp["CALLER2ID"],Insp["UNIQUEID2"]);  	//아웃바운드는 통화 성공시 업데이트 하자 -->
+        }
+      }
+      if(evt =="CHANNELOUT"){
+        //전화 종료
+        if(DBSEQ != Insp["DBSEQ"]){
+          if(Insp["HCAUSE"]=="16"){
+            call_UinqId ="";
+            pNo="";
+            cNo="";
+            location.reload();
+            nWindow.close();
+          }
+          return;
+        }
+
+        if(INLINENO != "null"){
+          callUpEndhit(INLINENO,CUSTTELNO,'1','C');
+          call_UinqId="";
+          pNo="";
+          cNo="";
+          location.reload();
+        }else{
+
+          //발신후 종료시 (통화완료시)
+          callOutUpEndhit(CUSTTELNO);
+          call_UinqId="";
+          pNo="";
+          cNo="";
+          location.reload();
+        }
+      }
+    }
+
+
+    //수신팝업
+    function callPhone(pNo, cNo, ERR) {
+
+      console.log('callPhone 호출됨');
+      document.getElementById('modalPNo').innerText = pNo;
+      document.getElementById('modalCNo').innerText = cNo;
+      document.getElementById('callModal').style.display = 'block';
+      document.getElementById('callModal').classList.add('show');
+    }
+
+    function closeModal() {
+      document.getElementById('callModal').style.display = 'none';
+      document.getElementById('callModal').classList.remove('show');
+    }
+
+
+
+    //전화가 들어왔을때 또는 아웃바운드 프로젝트만
+    function  callhit (pNo,cNO ,_CALLSTATE , _CONSTATE){
+
+      var _url  = 'ajaxUrl.SheetAction?S_CONTROLLER=EXEC_SRC.SPHONE.SPON1000';
+      var param = "&S_METHOD=callHit";
+      param +='&CALL_TELNO='+cNO;
+      param +='&CALLSTATE='+_CALLSTATE;
+      param +='&CONSTATE='+_CONSTATE;
+      param +='&PARTN_TELNO='+pNo+'&CALLID='+call_UinqId;
+
+      submitAjax('GET', _url, param, logHit);
+
+    }
+
+    //기존고객 전화를 할때
+    function  callCstmHit (pram1, pram2,pram3){
+
+      try{
+        var _url  = 'ajaxUrl.SheetAction?S_CONTROLLER=EXEC_SRC.SPHONE.SPON1000';
+        var param = "&S_METHOD=callCstmHit"
+        param +='&CALL_TELNO='+pram2
+        param +='&CONSTATE='+'O'
+        param +='&PARTN_TELNO='+outPNo+'&CALLID='+call_UinqId;
+
+        submitAjax('GET', _url, param, cstmHit);
+      }catch(e){
+        alert('발신중 err 발생!! 다시 시도 해주세요');
+        reJoin();
+      }
+
+    }
   </script>
 
   <script for="EventClientCtrl" event="SendCommandResultEvent(bstrCommandResult)">

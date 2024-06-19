@@ -1,0 +1,21 @@
+<div th:fragment="modal">
+  <div class="modal fade" id="callModal" tabindex="-1" aria-labelledby="callModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="callModalLabel">전화 수신</h5>
+          <button type="button" class="close" onclick="closeModal()" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <p><strong>내선 번호:</strong> <span id="modalPNo"></span></p>
+          <p><strong>전화 번호:</strong> <span id="modalCNo"></span></p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal()">닫기</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
