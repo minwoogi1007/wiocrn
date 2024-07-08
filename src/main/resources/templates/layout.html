@@ -106,13 +106,22 @@
     .modal-footer .btn {
       margin-left: 0.5rem;
     }
+    .blink {
+      animation: blinker 1s linear infinite;
+    }
+
+    @keyframes blinker {
+      50% {
+        opacity: 0;
+      }
+    }
 
   </style>
 </head>
 <body class="hold-transition sidebar-mini layout-fixed">
 <div class="wrapper">
 
-  <div th:replace="~{header :: header}"></div>
+  <div  id="header-container" th:replace="~{header :: header}"></div>
 
   <aside class="main-sidebar sidebar-dark-primary elevation-4" id="sidebar">
     <div class="sidebar">
@@ -277,6 +286,8 @@
       }
     });
   });
+
+
 </script>
 
 </body>

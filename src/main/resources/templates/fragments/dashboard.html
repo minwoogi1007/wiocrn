@@ -109,26 +109,28 @@
     <div class="row">
       <div class="col-md-3">
         <div class="card visits">
-          <h5>Views</h5>
-          <div class="value">721K</div>
-          <p class="small-text text-success"><i class="fas fa-arrow-up"></i> 전일 건</p>
-          <div class="change">+11.01%</div>
+          <h5>오늘 처리건</h5>
+          <div class="value"  id="todayCom"></div>
+          <p class="small-text text-success" id="yesterdayCom"><i class="fas fa-arrow-up"></i> 전일 건</p>
+          <div class="change" id="percentChange"></div>
         </div>
       </div>
       <div class="col-md-3">
         <div class="card visits">
-          <h5>Visits</h5>
-          <div class="value">367K</div>
-          <p class="small-text text-success"><i class="fas fa-arrow-up"></i> 전일 건</p>
-          <div class="change">+9.15%</div>
+          <h5>이번달 처리건</h5>
+          <div class="value" id="thisMonthCom"></div>
+          <p class="small-text" id="lastMonthCom"><i class="fas" id="monthChangeArrow"></i> 전월 건</p>
+          <div class="change" id="monthPercentChange"></div>
         </div>
       </div>
       <div class="col-md-3">
         <div class="card visits">
-          <h5>New Users</h5>
-          <div class="value">1,156</div>
-          <p class="small-text text-danger"><i class="fas fa-arrow-down"></i> 이번달 건</p>
-          <div class="change">-0.56%</div>
+          <h5>이번달 수수료</h5>
+          <div class="value" id="currentFee"></div>
+          <p class="small-text" id="previousFee">
+            <i class="fas fa-arrow-down" id="changeIcon"></i> 전월 원
+          </p>
+          <div class="change" id="changePercentage"></div>
         </div>
       </div>
       <div class="col-md-3">
@@ -336,6 +338,163 @@
       }
 
       autoScroll();
+
+
+      // 대시보드 데이터 로드 함수
+      function loadDashboardData() {
+        $.ajax({
+          url: '/api/dashboard-data',
+          method: 'GET',
+          success: function(response) {
+            var data = response['card-data-1'];
+            var thisMonthData = response['card-data-2'];
+
+            var pointList = response['pointlist-data'];
+
+            console.log(pointList);
+
+            var currentFee, previousFee;
+
+            for (var i = 0; i < pointList.length; i++) {
+              if (pointList[i].period === '이번달 합계' || pointList[i].period === '이번달') {
+                currentFee = pointList[i];
+              }
+              if (pointList[i].period === '전달 합계' || pointList[i].period === '전달') {
+                previousFee = pointList[i];
+              }
+            }
+
+            if (currentFee && previousFee) {
+              var currentAmount = currentFee.amount || currentFee.pointSum;
+              var previousAmount = previousFee.amount || previousFee.pointSum;
+
+              $('#currentFee').text(currentAmount.toLocaleString() + ' 원');
+              $('#previousFee').text('전월 '+previousAmount.toLocaleString() + ' 원');
+
+              var percentChange = ((currentAmount - previousAmount) / previousAmount * 100).toFixed(2);
+              var changeText = percentChange > 0 ? '+' + percentChange + '%' : percentChange + '%';
+              var changeClass = percentChange > 0 ? 'text-success' : 'text-danger';
+              var changeIcon = percentChange > 0 ? 'fa-arrow-up' : 'fa-arrow-down';
+
+              $('#changePercentage').text(changeText).removeClass('text-success text-danger').addClass(changeClass);
+              $('#changeIcon').removeClass('fa-arrow-up fa-arrow-down').addClass(changeIcon).addClass(changeClass);
+            } else {
+              $('#currentFee').text('N/A');
+              $('#previousFee').text('N/A');
+              $('#changePercentage').text('N/A');
+            }
+
+            var todayCom = data.todayCom;
+            var yesterdayCom = data.yesterdayCom;
+            var percentChange = data.percentChange;
+
+
+            $('#todayCom').text(todayCom + " 건");
+            if (percentChange < 0) {
+              $('#yesterdayCom').html('<i class="fas fa-arrow-down text-danger"></i> 전일 ' + yesterdayCom.toLocaleString()  + '건').addClass('text-danger').removeClass('text-success');
+            } else {
+              $('#yesterdayCom').html('<i class="fas fa-arrow-up text-success"></i> 전일 ' + yesterdayCom.toLocaleString()  + '건').addClass('text-success').removeClass('text-danger');
+            }
+            if (percentChange < 0) {
+              $('#changeArrow').removeClass('fa-arrow-up').addClass('fa-arrow-down text-danger');
+              $('#percentChange').text(percentChange + ' %');
+            } else {
+              $('#changeArrow').removeClass('fa-arrow-down').addClass('fa-arrow-up text-success');
+              $('#percentChange').text('+' + percentChange + ' %');
+            }
+
+            // 이번 달과 전달의 처리 건수 및 퍼센트 변화를 설정합니다.
+            var thisMonthCom = thisMonthData.thisMonth;
+            var lastMonthCom = thisMonthData.previousMonth;
+            var monthPercentChange = thisMonthData.percentChange;
+
+            $('#thisMonthCom').text(thisMonthCom.toLocaleString() + " 건");
+            if (monthPercentChange < 0) {
+              $('#lastMonthCom').html('<i class="fas fa-arrow-down text-danger"></i> 전월 ' + lastMonthCom.toLocaleString()  + '건').addClass('text-danger').removeClass('text-success');
+            } else {
+              $('#lastMonthCom').html('<i class="fas fa-arrow-up text-success"></i> 전월 ' + lastMonthCom.toLocaleString()  + '건').addClass('text-success').removeClass('text-danger');
+            }
+
+            if (monthPercentChange < 0) {
+              $('#monthChangeArrow').removeClass('fa-arrow-up').addClass('fa-arrow-down text-danger');
+              $('#monthPercentChange').text(monthPercentChange.toLocaleString()  + '%');
+            } else {
+              $('#monthChangeArrow').removeClass('fa-arrow-down').addClass('fa-arrow-up text-success');
+              $('#monthPercentChange').text('+' + monthPercentChange.toLocaleString()  + '%');
+            }
+
+
+          },
+          error: function(error) {
+            console.error('Error loading dashboard data', error);
+          }
+        });
+      }
+
+
+      // 콜 카운트 데이터 로드
+      function loadCallCountData() {
+        $.get('/api/dashboard-callCount-data', function(data) {
+          $('#callCount').text(data.callCount);
+          $('#callCountChange').text(data.callCountChange + '%');
+        });
+      }
+
+      // 인원 카운트 데이터 로드
+      function loadPersonCountData() {
+        $.get('/api/dashboard-personCount-data', function(data) {
+          $('#personCount').text(data.personCount);
+          $('#personCountChange').text(data.personCountChange + '%');
+        });
+      }
+
+      // 월간 데이터 로드
+      function loadMonthData() {
+        $.get('/api/dashboard-month-data', function(data) {
+          $('#monthData').text(data.monthData);
+          $('#monthDataChange').text(data.monthDataChange + '%');
+        });
+      }
+
+      // 포인트 데이터 로드
+      function loadPointData() {
+        $.get('/api/dashboard-point-data', function(data) {
+          $('#pointData').text(data.pointData);
+          $('#pointDataChange').text(data.pointDataChange + '%');
+        });
+      }
+
+      // 일간 평균 데이터 로드 및 차트 업데이트
+      function loadDailyAverageData() {
+        $.get('/api/dashboard-daily-data', function(data) {
+          // 여기에서 받아온 데이터로 일간 평균 차트 업데이트
+        });
+      }
+
+      // 주간 합계 데이터 로드 및 차트 업데이트
+      function loadWeeklySumData() {
+        $.get('/api/dashboard-weekly-data', function(data) {
+          // 여기에서 받아온 데이터로 주간 합계 차트 업데이트
+        });
+      }
+
+      // 월간 합계 데이터 로드 및 차트 업데이트
+      function loadMonthlySumData() {
+        $.get('/api/dashboard-monthly-data', function(data) {
+          // 여기에서 받아온 데이터로 월간 합계 차트 업데이트
+        });
+      }
+
+      // 모든 데이터 로드 함수 호출
+      loadDashboardData();
+      //loadCallCountData();
+      //loadPersonCountData();
+      //loadMonthData();
+      //loadPointData();
+      //loadDailyAverageData();
+      //loadWeeklySumData();
+      //loadMonthlySumData();
+
     });
   </script>
 </div>

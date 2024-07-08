@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wiocrm.mapper.PhoneMapper">
+    <select id="findProjectAndPersonNameByPhone" resultType="map">
+        WITH RankedData AS (
+            SELECT A.CUST_CODE,
+                   C.CUST_NAME,
+                   A.PROJECT_CODE,
+                   A.PROJECT_NAME,
+                   B.PERSON_CODE,
+                   B.PERSON_NAME,
+                   A.INCALL_NO,
+                   ROW_NUMBER() OVER (PARTITION BY A.CUST_CODE, A.PROJECT_CODE ORDER BY B.PERSON_CODE DESC) AS rn
+            FROM TPRJ01 A
+                     LEFT JOIN (
+                SELECT PROJECT_CODE,
+                       CUST_CODE,
+                       PERSON_CODE,
+                       PERSON_NAME,
+                       TEL_NO,
+                       TEL_NO1,
+                       TEL_NO2
+                FROM TPER01 B
+                WHERE #{callNumber} IS NULL OR B.TEL_NO = #{callNumber}
+                   OR #{callNumber} IS NULL OR B.TEL_NO1 = #{callNumber}
+                   OR #{callNumber} IS NULL OR B.TEL_NO2 = #{callNumber}
+                   OR #{callNumber} IS NULL OR B.TEL_NO3 = #{callNumber}
+                   OR #{callNumber} IS NULL OR B.TEL_NO4 = #{callNumber}
+            ) B ON A.PROJECT_CODE = B.PROJECT_CODE AND A.CUST_CODE = B.CUST_CODE
+                     LEFT JOIN TCNT01 C ON A.CUST_CODE = C.CUST_CODE
+            WHERE A.INCALL_NO = #{phoneNumber}
+        )
+        SELECT CUST_CODE,
+               CUST_NAME,
+               PROJECT_CODE,
+               PROJECT_NAME,
+               PERSON_CODE,
+               PERSON_NAME,
+               INCALL_NO
+        FROM RankedData
+        WHERE rn = 1
+
+    </select>
+
+
+</mapper>

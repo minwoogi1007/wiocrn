@@ -8,7 +8,7 @@ import java.util.List;
 
 @Mapper
 public interface DashboardMapper {
-    DashboardData findDataForCard1(String custCode);
+    DashboardData findDataForCard1(String userId);
 
     DashboardData findDataForCard2(String custCode);
 

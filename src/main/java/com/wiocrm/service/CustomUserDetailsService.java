@@ -51,6 +51,7 @@ public class CustomUserDetailsService implements UserDetailsService {
     public UserInfo findUserInfo(HttpServletRequest request) {
         HttpSession session = request.getSession();
         User user = (User) session.getAttribute("user");
+
         String userId = null;
         String userGubn = null;
         System.out.println("userId from session111============================================================" + userId);

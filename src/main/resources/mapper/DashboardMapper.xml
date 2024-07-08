@@ -2,155 +2,181 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.wiocrm.mapper.DashboardMapper">
     <select id="findDataForCard1" resultType="com.wiocrm.model.DashboardData">
-        select
-        nvl(todayMiss,0)todayMiss,
-        nvl(todayCom,0)count_Com,
-        nvl(todayEme,0) todayEme,
-        nvl(todayMiss+todayCom,0)count_sum,
-        NVL(ROUND((todayCom / NULLIF(todayMiss + todayCom, 0)) * 100, 2), 0) AS processing_rate
-        from
-        (
-        select
-
-        (
-        SELECT count(*)
+        SELECT
+        todayData.todayCom as todayCom,
+        previousData.previousCom as yesterdayCom,
+        ROUND(
+        CASE
+        WHEN previousData.previousCom = 0 THEN 100
+        ELSE ((todayData.todayCom - previousData.previousCom) / previousData.previousCom) * 100
+        END, 2
+        ) AS percentChange
         FROM
-        (SELECT MAX(CALLDATE)CALL_DATE ,CLID,CUST_CODE,PROJECT_CODE
-        FROM CALL_LOG_D
-        WHERE substr(calldate,0,10)= TO_CHAR(SYSDATE,'YYYY-MM-DD')
-        and cust_code is not null
-        GROUP BY SUBSTR(calldate,0,10) , CLID,CUST_CODE,PROJECT_CODE) A,CALL_LOG_D B
-        WHERE A.CALL_DATE = B.CALLDATE
-        AND substr(calldate,0,10) =TO_CHAR(SYSDATE,'YYYY-MM-DD')
-     <![CDATA[
-          AND A.CLID = B.CLID
-        AND RESULT <>'ANSWER'
-        --and b.context <> 'outbound'
-        and a.cust_code is not null
-      ]]>
-
-        )  todayMiss,
-        (
-        SELECT count(A.CUST_CODE)
-        FROM TBND01 A
-        WHERE 1=1
-        AND PRC_GUBN = '2'
-        AND TO_CHAR(IN_DATE, 'YYYYMMDD') = TO_CHAR(SYSDATE,'YYYYMMDD')
-
-        )todayCom,
-        (
-        SELECT count(A.CUST_CODE)
-        FROM TBND01 A
-        WHERE 1=1
-        AND A.PRC_GUBN = '2'
-        AND EMG_GUBN = '1'
-        AND TO_CHAR(IN_DATE, 'YYYYMMDD') = to_char(sysdate,'YYYYMMDD')
-        )todayEme
-        from dual
+        (SELECT COUNT(*) AS todayCom
+        FROM TBND01 T
+        JOIN N_TEMP01 N ON T.EMPNO = N.EMPNO
+        WHERE T.PRC_GUBN = '2'
+        AND TRUNC(T.IN_DATE) = TRUNC(SYSDATE)
+        AND (
+            <![CDATA[
+            (SELECT POSITION FROM N_TEMP01 WHERE USERID =  #{userId} ) <= '80' AND N.USERID =  #{userId}
+            OR (SELECT POSITION FROM N_TEMP01 WHERE USERID =  #{userId} ) > '80'
+            ]]>
         )
-
-</select>
+        ) todayData,
+        (SELECT COUNT(*) AS previousCom
+        FROM TBND01 T
+        JOIN N_TEMP01 N ON T.EMPNO = N.EMPNO
+        WHERE T.PRC_GUBN = '2'
+        AND TRUNC(T.IN_DATE) = TRUNC(
+                CASE
+                    WHEN TO_CHAR(SYSDATE - 1, 'D') = '1' THEN SYSDATE - 3  -- 어제가 일요일이면, 지난 금요일
+                    WHEN TO_CHAR(SYSDATE - 1, 'D') = '7' THEN SYSDATE - 2  -- 어제가 토요일이면, 지난 금요일
+                    ELSE SYSDATE - 1
+                    END
+        )
+        AND (
+            <![CDATA[
+            (SELECT POSITION FROM N_TEMP01 WHERE USERID =  #{userId} ) <= '80' AND N.USERID =  #{userId}
+            OR (SELECT POSITION FROM N_TEMP01 WHERE USERID =  #{userId} ) > '80'
+            ]]>
+        )
+        ) previousData
+    </select>
 
     <select id="findDataForCard2" resultType="com.wiocrm.model.DashboardData">
-
         SELECT
-            NVL(
-                    TO_CHAR(
-                            CASE
-                                WHEN percentChange > 100 THEN percentChange - 100
-                                ELSE percentChange
-                                END,
-                            'FM999999990.00'
-                        ),
-                    '0'
-                ) AS processing_rate,
-            dailyPoint,
-            dailyPointN
-        FROM (
-                 SELECT
-                             (today.dailyPointN - yesterday.dailyPointN) / NULLIF(yesterday.dailyPointN, 0) * 100 AS percentChange,
-                             today.dailyPoint as dailyPoint,
-                             today.dailyPointN as dailyPointN
-                 FROM
-                     (
-                         SELECT
-                             NVL(TO_CHAR(SUM(point) * -1, '999,999,999,999'), '0') AS dailyPoint,
-                             NVL(SUM(point) * -1, 0) AS dailyPointN
-                         FROM
-                             tcnt01_point
-                         WHERE
-                             call_code IS NOT NULL
-                           AND ISSUE_DATE =to_char(sysdate,'YYYYMMDD') -- 오늘 날짜
-                             <if test="custCode != null and !custCode.isEmpty()">
-                            AND CUST_CODE = #{custCode}
-                             </if>
-                     ) today,
-                     (
-                         SELECT
-                             NVL(TO_CHAR(SUM(point) * -1, '999,999,999,999'), '0') AS dailyPoint,
-                             NVL(SUM(point) * -1, 0) AS dailyPointN
-                         FROM
-                             tcnt01_point
-                         WHERE
-                             call_code IS NOT NULL
-                           AND ISSUE_DATE = to_char(sysdate-1,'YYYYMMDD') -- 어제 날짜; 날짜가 잘못 지정되었으니 적절히 조정해야 함
-                             <if test="custCode != null and !custCode.isEmpty()">
-                            AND CUST_CODE = #{custCode}
-                             </if>
-                     ) yesterday
-             )
+        thisMonthData.thisMonthCom as thisMonth,
+        lastMonthData.lastMonthCom as previousMonth,
+        ROUND(
+        CASE
+        WHEN lastMonthData.lastMonthCom = 0 THEN 100
+        ELSE ((thisMonthData.thisMonthCom - lastMonthData.lastMonthCom) / lastMonthData.lastMonthCom) * 100
+        END, 2
+        ) AS percentChange
+        FROM
+        (SELECT COUNT(*) AS thisMonthCom
+        FROM TBND01 T
+        JOIN N_TEMP01 N ON T.EMPNO = N.EMPNO
+        WHERE T.PRC_GUBN = '2'
+        AND TRUNC(T.IN_DATE, 'MM') = TRUNC(SYSDATE, 'MM')
+        AND (
+            <![CDATA[
+            (SELECT POSITION FROM N_TEMP01 WHERE USERID = #{userId}) <= '80' AND N.USERID = #{userId}
+            OR (SELECT POSITION FROM N_TEMP01 WHERE USERID = #{userId}) > '80'
+            ]]>
+        )
+        ) thisMonthData,
+        (SELECT COUNT(*) AS lastMonthCom
+        FROM TBND01 T
+        JOIN N_TEMP01 N ON T.EMPNO = N.EMPNO
+        WHERE T.PRC_GUBN = '2'
+        AND TRUNC(T.IN_DATE, 'MM') = TRUNC(ADD_MONTHS(SYSDATE, -1), 'MM')
+        AND (
+            <![CDATA[
+            (SELECT POSITION FROM N_TEMP01 WHERE USERID = #{userId}) <= '80' AND N.USERID = #{userId}
+            OR (SELECT POSITION FROM N_TEMP01 WHERE USERID = #{userId}) > '80'
+            ]]>
+        )
+        ) lastMonthData
 
     </select>
     <select id="findPointList" resultType="com.wiocrm.model.DashboardData">
 
-
-
-
-        WITH AggregatedData AS (
-            SELECT
-                CS_TYPE,
-                count(POINT) AS TotalPoints
-            FROM tcnt01_point b
-                     INNER JOIN tcnt01 a ON a.cust_code = b.cust_code
-                     INNER JOIN tbnd01 c ON b.cust_code = c.cust_code
-                AND b.projct_code = c.project_code
-                AND b.call_code = c.call_code
-                AND b.person_code = c.person_code
-            WHERE b.issue_date = to_char(sysdate,'YYYYMMDD')
-        <if test="custCode != null and !custCode.isEmpty()">
-              AND b.CUST_CODE = #{custCode}
-        </if>
-            GROUP BY CS_TYPE
-        ),
-        <![CDATA[
-             RankedData AS (
-                 SELECT
-                     CS_TYPE,
-                     TotalPoints,
-                     ROW_NUMBER() OVER (ORDER BY TotalPoints DESC) AS Rank
-                 FROM AggregatedData A
-             ),
-             FinalData AS (
-                 SELECT
-                     CASE
-                         WHEN Rank <= 2 THEN CS_TYPE
-                         ELSE '기타'
-                         END AS GroupingKey,
-                     SUM(TotalPoints) AS Points
-                 FROM RankedData
-                 GROUP BY
-                     CASE
-                         WHEN Rank <= 2 THEN CS_TYPE
-                         ELSE '기타'
-                         END
-             )
+        WITH CurrentMonthCalls AS (
         SELECT
-            DECODE((SELECT ADM_SNAME FROM TSYS01 WHERE ADM_GUBN='4002' AND ADM_CODE= GroupingKey),NULL,'기타',(SELECT ADM_SNAME FROM TSYS01 WHERE ADM_GUBN='4002' AND ADM_CODE= GroupingKey)) AS CS_TYPE,
-            TO_CHAR(nvl(Points,0),'999,999,999,999') as dailyPoint , nvl(Points,0) dailyPointN
-        FROM FinalData
-        ORDER BY
-            CASE WHEN GroupingKey = '기타' THEN 1 ELSE 0 END, Points DESC
+        T.EMPNO,
+        COUNT(*) AS callCount,
+        (CASE
+        WHEN COUNT(*) >= 3045 THEN (COUNT(*) - 3045) * 500 + 2390000
+        WHEN COUNT(*) >= 2730 THEN (COUNT(*) - 2730) * 500 + 2060000
+        WHEN COUNT(*) >= 2520 THEN (COUNT(*) - 2520) * 500 + 1840000
+        WHEN COUNT(*) >= 2310 THEN (COUNT(*) - 2310) * 500 + 1620000
+        WHEN COUNT(*) >= 2100 THEN (COUNT(*) - 2100) * 500 + 1400000
+        WHEN COUNT(*) >= 1890 THEN (COUNT(*) - 1890) * 500 + 1050000
+        WHEN COUNT(*) >= 1680 THEN (COUNT(*) - 1680) * 500 + 900000
+        ELSE COUNT(*) * 500
+        END) AS pointSum
+        FROM
+        TBND01 T
+        JOIN
+        N_TEMP01 N ON T.EMPNO = N.EMPNO
+        WHERE
+        EXTRACT(MONTH FROM T.IN_DATE) = EXTRACT(MONTH FROM SYSDATE)
+        AND EXTRACT(YEAR FROM T.IN_DATE) = EXTRACT(YEAR FROM SYSDATE)
+        AND T.PRC_GUBN='2'
+        GROUP BY
+        T.EMPNO
+        ),
+        PreviousMonthCalls AS (
+        SELECT
+        T.EMPNO,
+        (CASE
+        WHEN COUNT(*) >= 3045 THEN (COUNT(*) - 3045) * 500 + 2390000
+        WHEN COUNT(*) >= 2730 THEN (COUNT(*) - 2730) * 500 + 2060000
+        WHEN COUNT(*) >= 2520 THEN (COUNT(*) - 2520) * 500 + 1840000
+        WHEN COUNT(*) >= 2310 THEN (COUNT(*) - 2310) * 500 + 1620000
+        WHEN COUNT(*) >= 2100 THEN (COUNT(*) - 2100) * 500 + 1400000
+        WHEN COUNT(*) >= 1890 THEN (COUNT(*) - 1890) * 500 + 1050000
+        WHEN COUNT(*) >= 1680 THEN (COUNT(*) - 1680) * 500 + 900000
+        ELSE COUNT(*) * 500
+        END) AS pointSum
+        FROM
+        TBND01 T
+        JOIN
+        N_TEMP01 N ON T.EMPNO = N.EMPNO
+        WHERE
+        EXTRACT(MONTH FROM T.IN_DATE) = EXTRACT(MONTH FROM ADD_MONTHS(SYSDATE, -1))
+        AND EXTRACT(YEAR FROM T.IN_DATE) = EXTRACT(YEAR FROM ADD_MONTHS(SYSDATE, -1))
+        AND T.PRC_GUBN='2'
+        GROUP BY
+        T.EMPNO
+        )
+        SELECT
+        '이번달' AS period,
+        C.EMPNO,
+        C.pointSum
+        FROM
+        CurrentMonthCalls C
+        WHERE
+        <![CDATA[
+        (SELECT TO_NUMBER(POSITION) FROM N_TEMP01 WHERE USERID = #{userId}) <= 80
+        AND C.EMPNO = (SELECT EMPNO FROM N_TEMP01 WHERE USERID = #{userId})
         ]]>
+        UNION ALL
+        SELECT
+        '전달' AS period,
+        P.EMPNO,
+        P.pointSum
+        FROM
+        PreviousMonthCalls P
+        WHERE
+        <![CDATA[
+        (SELECT TO_NUMBER(POSITION) FROM N_TEMP01 WHERE USERID = #{userId}) <= 80
+        AND P.EMPNO = (SELECT EMPNO FROM N_TEMP01 WHERE USERID = #{userId})
+        ]]>
+        UNION ALL
+        SELECT
+        '이번달 합계' AS period,
+        NULL AS EMPNO,
+        SUM(C.pointSum) AS pointSum
+        FROM
+        CurrentMonthCalls C
+        WHERE
+        (SELECT TO_NUMBER(POSITION) FROM N_TEMP01 WHERE USERID = #{userId}) > 80
+        UNION ALL
+        SELECT
+        '전달 합계' AS period,
+        NULL AS EMPNO,
+        SUM(P.pointSum) AS pointSum
+        FROM
+        PreviousMonthCalls P
+        WHERE
+        (SELECT TO_NUMBER(POSITION) FROM N_TEMP01 WHERE USERID = #{userId}) > 80
+        ORDER BY
+        period DESC, EMPNO
+
+
     </select>
     <select id="dashConSum" resultType="com.wiocrm.model.DashboardData">
 

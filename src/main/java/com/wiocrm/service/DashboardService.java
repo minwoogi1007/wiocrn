@@ -5,6 +5,7 @@ import com.wiocrm.mapper.DashboardMapper;
 import com.wiocrm.mapper.Tcnt01EmpMapper;
 import com.wiocrm.mapper.Temp01Mapper;
 import com.wiocrm.model.DashboardData;
+import com.wiocrm.model.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -14,6 +15,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpSession;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -59,24 +62,27 @@ public class DashboardService {
 
         return data;
     }
-    public Map<String, Object> getDashboardData(String username) {
+    public Map<String, Object> getDashboardData(String username,HttpServletRequest request) {
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         // 현재 사용자의 CustomUserDetails 객체에서 custCode 추출
-        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+       // CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        HttpSession session = request.getSession();
 
         Map<String, Object> data = new HashMap<>();
-        // 데이터베이스 조회
-        String custCode=getCurrentUserCustCode();
-
-        DashboardData card1Data = dashboardMapper.findDataForCard1(custCode);
-        DashboardData card2Data = dashboardMapper.findDataForCard2(custCode);
-        List<DashboardData> pointList = dashboardMapper.findPointList(custCode); //
-        DashboardData dashConSum = dashboardMapper.dashConSum(custCode);
+        User user = (User) session.getAttribute("user");
+    System.out.println("user.getUserId()===="+user.getUserId());
+        System.out.println("username===="+username);
+    // 사용자 유형에 따른 처리
+        DashboardData card1Data = dashboardMapper.findDataForCard1(user.getUserId());
+        DashboardData card2Data = dashboardMapper.findDataForCard2(user.getUserId());
+        List<DashboardData> pointList = dashboardMapper.findPointList(user.getUserId()); //
+        DashboardData dashConSum = dashboardMapper.dashConSum(username);
 
         data.put("card-data-1", card1Data);
         data.put("card-data-2", card2Data);
         data.put("card-data-3", dashConSum);
+
         data.put("pointlist-data", pointList);
 
         return data;
@@ -198,38 +204,23 @@ public class DashboardService {
 
         Map<String, Object> data = new HashMap<>();
         // 데이터베이스 조회
-        String custCode=getCurrentUserCustCode();
+        String custCode = getCurrentUserCustCode();
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        //CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
 
         DashboardData point = null;
         List<DashboardData> pointList = null;
-        System.out.println("userDetails.getTcntUserInfo()===="+userDetails.getTcntUserInfo());
-        System.out.println("userDetails.getTempUserInfo()===="+userDetails.getTempUserInfo());
+        //System.out.println("userDetails.getTcntUserInfo()====" + userDetails.getTcntUserInfo());
+        //System.out.println("userDetails.getTempUserInfo()====" + userDetails.getTempUserInfo());
         // 사용자 유형에 따른 처리
         // 거래처 사용자인 경우
-        if (userDetails.getTcntUserInfo() != null) {
-            String gubn = userDetails.getTcntUserInfo().getCust_grade(); // 안전하게 gubn 값을 가져옵니다.
-            System.out.println("gubn===="+gubn);
 
-            if ("A".equals(gubn)) {
-                // A 유형 사용자를 위한 로직
-                point = dashboardMapper.getPoint(custCode);
-                pointList = dashboardMapper.getPointList(custCode);
-            } else if ("B".equals(gubn)) {
-                // B 유형 사용자를 위한 로직
-                // B 유형 사용자에 대한 처리 로직 추가
-            }
-        } else if (userDetails.getTempUserInfo() != null) {
-            // 내부 직원 사용자인 경우
-            // 내부 직원 사용자에 대한 처리 로직 추가
-            point = dashboardMapper.getPoint(custCode);
-            pointList = dashboardMapper.getPointList(custCode);
-        } else {
-            // 알 수 없는 사용자 유형 또는 누락된 정보 처리
-            // 오류 처리 로직 추가 또는 기본 데이터 설정
-        }
+
+        // 내부 직원 사용자인 경우
+        // 내부 직원 사용자에 대한 처리 로직 추가
+        point = dashboardMapper.getPoint(custCode);
+        pointList = dashboardMapper.getPointList(custCode);
 
         data.put("point", point);
         data.put("pointList", pointList);

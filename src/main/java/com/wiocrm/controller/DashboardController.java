@@ -6,6 +6,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.servlet.http.HttpServletRequest;
 import java.security.Principal;
 import java.util.Map;
 
@@ -21,11 +22,11 @@ public class DashboardController {
 
     //
     @GetMapping("/api/dashboard-data")
-    public ResponseEntity<Map<String, Object>> getDashboardData(Principal principal) {
+    public ResponseEntity<Map<String, Object>> getDashboardData(Principal principal,HttpServletRequest request) {
         // SecurityContext에서 인증 객체를 가져옵니다.
         String username = principal.getName();
        // dashboardService.printUserDetails();
-        Map<String, Object> data = dashboardService.getDashboardData(username);
+        Map<String, Object> data = dashboardService.getDashboardData(username, request);
         return ResponseEntity.ok(data);
     }
     @GetMapping("/api/dashboard-callCount-data")
