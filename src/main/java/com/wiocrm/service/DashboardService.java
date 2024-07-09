@@ -71,19 +71,16 @@ public class DashboardService {
 
         Map<String, Object> data = new HashMap<>();
         User user = (User) session.getAttribute("user");
-    System.out.println("user.getUserId()===="+user.getUserId());
-        System.out.println("username===="+username);
     // 사용자 유형에 따른 처리
-        DashboardData card1Data = dashboardMapper.findDataForCard1(user.getUserId());
-        DashboardData card2Data = dashboardMapper.findDataForCard2(user.getUserId());
-        List<DashboardData> pointList = dashboardMapper.findPointList(user.getUserId()); //
-        DashboardData dashConSum = dashboardMapper.dashConSum(username);
+        DashboardData card1Data = dashboardMapper.findDataForCard1(user.getUserId());//오늘  전일 처리건
+        DashboardData card2Data = dashboardMapper.findDataForCard2(user.getUserId());//이번달 전달 처리건
+        List<DashboardData> pointList = dashboardMapper.findPointList(user.getUserId()); //이번달 수수료
+        DashboardData avgHourlyData = dashboardMapper.findAvgHourlyData(user.getUserId()); //시간당 평균 처리건
 
         data.put("card-data-1", card1Data);
         data.put("card-data-2", card2Data);
-        data.put("card-data-3", dashConSum);
-
         data.put("pointlist-data", pointList);
+        data.put("avg-hourly-data", avgHourlyData);
 
         return data;
     }

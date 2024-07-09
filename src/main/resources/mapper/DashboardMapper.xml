@@ -178,92 +178,66 @@
 
 
     </select>
-    <select id="dashConSum" resultType="com.wiocrm.model.DashboardData">
+    <select id="findAvgHourlyData" resultType="com.wiocrm.model.DashboardData">
 
 
-        <![CDATA[
-        select (
-        SELECT count(*)
+
+        SELECT
+        today_avg.avgHourlyCount AS todayCom,
+        month_avg.avgHourlyCount AS thisMonth,
+        ROUND(
+        CASE
+        WHEN month_avg.avgHourlyCount = 0 THEN 100
+        ELSE ((today_avg.avgHourlyCount - month_avg.avgHourlyCount) / month_avg.avgHourlyCount) * 100
+        END, 2
+        ) AS percentChange
         FROM
-        (SELECT MAX(CALLDATE)CALL_DATE ,CLID,CUST_CODE,PROJECT_CODE
-        FROM CALL_LOG_D
-        WHERE substr(calldate,0,10)= TO_CHAR(SYSDATE,'YYYY-MM-DD')
-        and cust_code is not null
-        GROUP BY SUBSTR(calldate,0,10) , CLID,CUST_CODE,PROJECT_CODE) A,CALL_LOG_D B
-        WHERE A.CALL_DATE = B.CALLDATE
-        AND substr(calldate,0,10) =TO_CHAR(SYSDATE-1,'YYYY-MM-DD')
-        AND A.CLID = B.CLID
-        AND RESULT <>'ANSWER'
-        --and b.context <> 'outbound'
-        and a.cust_code is not null
-        ]]>
-        <if test="custCode != null and !custCode.isEmpty()">
-            AND A.CUST_CODE = #{custCode}
-        </if>
-        ) yesterdayMiss,
-        (
-        SELECT count(A.CUST_CODE)
-        FROM TBND01 A
-        WHERE 1=1
-        AND PRC_GUBN = '2'
-        AND TO_CHAR(IN_DATE, 'YYYYMMDD') = TO_CHAR(SYSDATE-1,'YYYYMMDD')
-        <if test="custCode != null and !custCode.isEmpty()">
-            AND A.CUST_CODE = #{custCode}
-        </if>
-        )yesterdayCom,
-        (
-        SELECT count(A.CUST_CODE)
-        FROM TBND01 A
-        WHERE 1=1
-        AND A.PRC_GUBN = '2'
-        AND EMG_GUBN = '1'
-        AND TO_CHAR(IN_DATE, 'YYYYMMDD') = to_char(sysdate-1,'YYYYMMDD')
-        <if test="custCode != null and !custCode.isEmpty()">
-            AND A.CUST_CODE = #{custCode}
-        </if>
-        )yesterdayEme,
-        (
-        <![CDATA[
-        SELECT count(*)
+        (SELECT
+        FLOOR(AVG(hourly_counts.countPerHour)) AS avgHourlyCount
         FROM
-        (SELECT MAX(CALLDATE)CALL_DATE ,CLID,CUST_CODE,PROJECT_CODE
-        FROM CALL_LOG_D
-        WHERE substr(calldate,0,10)= TO_CHAR(SYSDATE,'YYYY-MM-DD')
-        and cust_code is not null
-        GROUP BY SUBSTR(calldate,0,10) , CLID,CUST_CODE,PROJECT_CODE) A,CALL_LOG_D B
-        WHERE A.CALL_DATE = B.CALLDATE
-        AND substr(calldate,0,10) =TO_CHAR(SYSDATE,'YYYY-MM-DD')
-        AND A.CLID = B.CLID
-        AND RESULT <>'ANSWER'
-        --and b.context <> 'outbound'
-        and a.cust_code is not null
+        (
+        SELECT
+        TRUNC(T.IN_DATE, 'HH24') AS hour,
+        COUNT(*) AS countPerHour
+        FROM
+        TBND01 T
+        JOIN N_TEMP01 N ON T.EMPNO = N.EMPNO
+        WHERE
+        T.PRC_GUBN = '2'
+        AND TRUNC(T.IN_DATE) = TRUNC(SYSDATE)
+        AND (
+        <![CDATA[
+            (SELECT POSITION FROM N_TEMP01 WHERE USERID = #{userId} ) <= '80' AND N.USERID = #{userId}
+            OR (SELECT POSITION FROM N_TEMP01 WHERE USERID = #{userId} ) > '80'
         ]]>
-        <if test="custCode != null and !custCode.isEmpty()">
-            AND A.CUST_CODE = #{custCode}
-        </if>
-        )  todayMiss,
+        )
+        GROUP BY
+        TRUNC(T.IN_DATE, 'HH24')
+        ) hourly_counts
+        ) today_avg,
+        (SELECT
+        FLOOR(AVG(hourly_counts.countPerHour)) AS avgHourlyCount
+        FROM
         (
-        SELECT count(A.CUST_CODE)
-        FROM TBND01 A
-        WHERE 1=1
-        AND PRC_GUBN = '2'
-        AND TO_CHAR(IN_DATE, 'YYYYMMDD') = TO_CHAR(SYSDATE,'YYYYMMDD')
-        <if test="custCode != null and !custCode.isEmpty()">
-            AND A.CUST_CODE = #{custCode}
-        </if>
-        )todayCom,
-        (
-        SELECT count(A.CUST_CODE)
-        FROM TBND01 A
-        WHERE 1=1
-        AND A.PRC_GUBN = '2'
-        AND EMG_GUBN = '1'
-        AND TO_CHAR(IN_DATE, 'YYYYMMDD') = to_char(sysdate,'YYYYMMDD')
-        <if test="custCode != null and !custCode.isEmpty()">
-            AND A.CUST_CODE = #{custCode}
-        </if>
-        )todayEme
-        from dual
+        SELECT
+        TRUNC(T.IN_DATE, 'HH24') AS hour,
+        COUNT(*) AS countPerHour
+        FROM
+        TBND01 T
+        JOIN N_TEMP01 N ON T.EMPNO = N.EMPNO
+        WHERE
+        T.PRC_GUBN = '2'
+        AND TRUNC(T.IN_DATE, 'MM') = TRUNC(SYSDATE, 'MM')
+        AND (
+        <![CDATA[
+            (SELECT POSITION FROM N_TEMP01 WHERE USERID = #{userId} ) <= '80' AND N.USERID = #{userId}
+            OR (SELECT POSITION FROM N_TEMP01 WHERE USERID = #{userId} ) > '80'
+        ]]>
+        )
+        GROUP BY
+        TRUNC(T.IN_DATE, 'HH24')
+        ) hourly_counts
+        ) month_avg
     </select>
     <select id="dashStatCount" resultType="com.wiocrm.model.DashboardData">
 

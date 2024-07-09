@@ -14,7 +14,7 @@ public interface DashboardMapper {
 
     List<DashboardData> findPointList(String custCode);
 
-    DashboardData dashConSum(String custCode);
+    DashboardData findAvgHourlyData(String custCode);
 
     List<DashboardData> getDashboardCallCount(String custCode);
 

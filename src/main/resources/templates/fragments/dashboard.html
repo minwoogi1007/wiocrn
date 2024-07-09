@@ -22,6 +22,7 @@
       padding: 20px;
       flex: 1 1 calc(25% - 20px);
       min-width: 200px;
+      position: relative;
     }
     .card h5 {
       margin: 0;
@@ -73,6 +74,39 @@
       background-color: #1e88e5;
       color: #ffffff;
     }
+    .refresh-icon {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      color: #ffffff;
+      cursor: pointer;
+    }.refresh-icon {
+       position: absolute;
+       top: 10px;
+       right: 10px;
+       color: #ffffff;
+       cursor: pointer;
+     }
+
+    .loading-spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top-color: #ffffff;
+      animation: spin 1s ease-in-out infinite;
+      -webkit-animation: spin 1s ease-in-out infinite;
+    }
+
+    @keyframes spin {
+      to { -webkit-transform: rotate(360deg); }
+    }
+
+    @-webkit-keyframes spin {
+      to { -webkit-transform: rotate(360deg); }
+    }
+
   </style>
 
   <div class="content-header">
@@ -109,6 +143,7 @@
     <div class="row">
       <div class="col-md-3">
         <div class="card visits">
+          <i class="fas fa-sync-alt refresh-icon" onclick="refreshCard('today')"></i>
           <h5>오늘 처리건</h5>
           <div class="value"  id="todayCom"></div>
           <p class="small-text text-success" id="yesterdayCom"><i class="fas fa-arrow-up"></i> 전일 건</p>
@@ -127,18 +162,18 @@
         <div class="card visits">
           <h5>이번달 수수료</h5>
           <div class="value" id="currentFee"></div>
-          <p class="small-text" id="previousFee">
-            <i class="fas fa-arrow-down" id="changeIcon"></i> 전월 원
-          </p>
+          <p class="small-text" id="previousFee"> <i class="fas " id="changeIcon"></i>   </p>
           <div class="change" id="changePercentage"></div>
         </div>
       </div>
       <div class="col-md-3">
         <div class="card visits">
-          <h5>Active Users</h5>
-          <div class="value">239K</div>
-          <p class="small-text text-danger"><i class="fas fa-arrow-down"></i> 이번달 건</p>
-          <div class="change">-1.48%</div>
+          <h5>시간당 평균 콜 수</h5>
+          <div class="value" id="todayAvgHourlyCount"></div>
+          <p class="small-text">
+            <i class="fas " id="avgChangeIcon"></i> <span id="monthAvgHourlyCount"></span>
+          </p>
+          <div class="change" id="avgChangePercentage"></div>
         </div>
       </div>
     </div>
@@ -341,95 +376,7 @@
 
 
       // 대시보드 데이터 로드 함수
-      function loadDashboardData() {
-        $.ajax({
-          url: '/api/dashboard-data',
-          method: 'GET',
-          success: function(response) {
-            var data = response['card-data-1'];
-            var thisMonthData = response['card-data-2'];
 
-            var pointList = response['pointlist-data'];
-
-            console.log(pointList);
-
-            var currentFee, previousFee;
-
-            for (var i = 0; i < pointList.length; i++) {
-              if (pointList[i].period === '이번달 합계' || pointList[i].period === '이번달') {
-                currentFee = pointList[i];
-              }
-              if (pointList[i].period === '전달 합계' || pointList[i].period === '전달') {
-                previousFee = pointList[i];
-              }
-            }
-
-            if (currentFee && previousFee) {
-              var currentAmount = currentFee.amount || currentFee.pointSum;
-              var previousAmount = previousFee.amount || previousFee.pointSum;
-
-              $('#currentFee').text(currentAmount.toLocaleString() + ' 원');
-              $('#previousFee').text('전월 '+previousAmount.toLocaleString() + ' 원');
-
-              var percentChange = ((currentAmount - previousAmount) / previousAmount * 100).toFixed(2);
-              var changeText = percentChange > 0 ? '+' + percentChange + '%' : percentChange + '%';
-              var changeClass = percentChange > 0 ? 'text-success' : 'text-danger';
-              var changeIcon = percentChange > 0 ? 'fa-arrow-up' : 'fa-arrow-down';
-
-              $('#changePercentage').text(changeText).removeClass('text-success text-danger').addClass(changeClass);
-              $('#changeIcon').removeClass('fa-arrow-up fa-arrow-down').addClass(changeIcon).addClass(changeClass);
-            } else {
-              $('#currentFee').text('N/A');
-              $('#previousFee').text('N/A');
-              $('#changePercentage').text('N/A');
-            }
-
-            var todayCom = data.todayCom;
-            var yesterdayCom = data.yesterdayCom;
-            var percentChange = data.percentChange;
-
-
-            $('#todayCom').text(todayCom + " 건");
-            if (percentChange < 0) {
-              $('#yesterdayCom').html('<i class="fas fa-arrow-down text-danger"></i> 전일 ' + yesterdayCom.toLocaleString()  + '건').addClass('text-danger').removeClass('text-success');
-            } else {
-              $('#yesterdayCom').html('<i class="fas fa-arrow-up text-success"></i> 전일 ' + yesterdayCom.toLocaleString()  + '건').addClass('text-success').removeClass('text-danger');
-            }
-            if (percentChange < 0) {
-              $('#changeArrow').removeClass('fa-arrow-up').addClass('fa-arrow-down text-danger');
-              $('#percentChange').text(percentChange + ' %');
-            } else {
-              $('#changeArrow').removeClass('fa-arrow-down').addClass('fa-arrow-up text-success');
-              $('#percentChange').text('+' + percentChange + ' %');
-            }
-
-            // 이번 달과 전달의 처리 건수 및 퍼센트 변화를 설정합니다.
-            var thisMonthCom = thisMonthData.thisMonth;
-            var lastMonthCom = thisMonthData.previousMonth;
-            var monthPercentChange = thisMonthData.percentChange;
-
-            $('#thisMonthCom').text(thisMonthCom.toLocaleString() + " 건");
-            if (monthPercentChange < 0) {
-              $('#lastMonthCom').html('<i class="fas fa-arrow-down text-danger"></i> 전월 ' + lastMonthCom.toLocaleString()  + '건').addClass('text-danger').removeClass('text-success');
-            } else {
-              $('#lastMonthCom').html('<i class="fas fa-arrow-up text-success"></i> 전월 ' + lastMonthCom.toLocaleString()  + '건').addClass('text-success').removeClass('text-danger');
-            }
-
-            if (monthPercentChange < 0) {
-              $('#monthChangeArrow').removeClass('fa-arrow-up').addClass('fa-arrow-down text-danger');
-              $('#monthPercentChange').text(monthPercentChange.toLocaleString()  + '%');
-            } else {
-              $('#monthChangeArrow').removeClass('fa-arrow-down').addClass('fa-arrow-up text-success');
-              $('#monthPercentChange').text('+' + monthPercentChange.toLocaleString()  + '%');
-            }
-
-
-          },
-          error: function(error) {
-            console.error('Error loading dashboard data', error);
-          }
-        });
-      }
 
 
       // 콜 카운트 데이터 로드
@@ -496,6 +443,152 @@
       //loadMonthlySumData();
 
     });
+
+    function loadDashboardData() {
+      $.ajax({
+        url: '/api/dashboard-data',
+        method: 'GET',
+        success: function(response) {
+          var data = response['card-data-1'];
+          var thisMonthData = response['card-data-2'];
+
+          var pointList = response['pointlist-data'];
+          var avgHourlyData = response['avg-hourly-data'];
+
+          var currentFee, previousFee;
+
+          for (var i = 0; i < pointList.length; i++) {
+            if (pointList[i].period === '이번달 합계' || pointList[i].period === '이번달') {
+              currentFee = pointList[i];
+            }
+            if (pointList[i].period === '전달 합계' || pointList[i].period === '전달') {
+              previousFee = pointList[i];
+            }
+          }
+
+          if (currentFee && previousFee) {
+            var currentAmount = currentFee.amount || currentFee.pointSum;
+            var previousAmount = previousFee.amount || previousFee.pointSum;
+
+            $('#currentFee').text(currentAmount.toLocaleString() + ' 원');
+            $('#previousFee').text('전월 '+previousAmount.toLocaleString() + ' 원');
+
+            var percentChange = ((currentAmount - previousAmount) / previousAmount * 100).toFixed(2);
+            var changeText = percentChange > 0 ? '+' + percentChange + '%' : percentChange + '%';
+            var changeClass = percentChange > 0 ? 'text-success' : 'text-danger';
+            var changeIcon = percentChange > 0 ? 'fa-arrow-up' : 'fa-arrow-down';
+            console.log(changeIcon);
+            $('#changePercentage').text(changeText);
+            $('#changeIcon').addClass(changeIcon).addClass(changeClass);
+          } else {
+            $('#currentFee').text('N/A');
+            $('#previousFee').text('N/A');
+            $('#changePercentage').text('N/A');
+          }
+
+          if (avgHourlyData) {
+            $('#todayAvgHourlyCount').text(avgHourlyData.todayCom.toLocaleString() + ' 건/시간');
+            $('#monthAvgHourlyCount').text(avgHourlyData.thisMonth.toLocaleString() + ' 건/시간');
+
+            var avgPercentChange = avgHourlyData.percentChange;
+            var avgChangeText = avgPercentChange > 0 ? '+' + avgPercentChange + '%' : avgPercentChange + '%';
+            var avgChangeClass = avgPercentChange > 0 ? 'text-success' : 'text-danger';
+            var avgChangeIcon = avgPercentChange > 0 ? 'fa-arrow-up' : 'fa-arrow-down';
+
+            $('#avgChangePercentage').text(avgChangeText);
+            $('#avgChangeIcon').addClass(avgChangeIcon).addClass(avgChangeClass);
+          } else {
+            $('#todayAvgHourlyCount').text('N/A');
+            $('#monthAvgHourlyCount').text('N/A');
+            $('#avgChangePercentage').text('N/A');
+          }
+
+          var todayCom = data.todayCom;
+          var yesterdayCom = data.yesterdayCom;
+          var percentChange = data.percentChange;
+
+
+          $('#todayCom').text(todayCom + " 건");
+          if (percentChange < 0) {
+            $('#yesterdayCom').html('<i class="fas fa-arrow-down text-danger"></i> 전일 ' + yesterdayCom.toLocaleString()  + '건').addClass('text-danger').removeClass('text-success');
+          } else {
+            $('#yesterdayCom').html('<i class="fas fa-arrow-up text-success"></i> 전일 ' + yesterdayCom.toLocaleString()  + '건').addClass('text-success').removeClass('text-danger');
+          }
+          if (percentChange < 0) {
+            $('#changeArrow').removeClass('fa-arrow-up').addClass('fa-arrow-down text-danger');
+            $('#percentChange').text(percentChange + ' %');
+          } else {
+            $('#changeArrow').removeClass('fa-arrow-down').addClass('fa-arrow-up text-success');
+            $('#percentChange').text('+' + percentChange + ' %');
+          }
+
+          // 이번 달과 전달의 처리 건수 및 퍼센트 변화를 설정합니다.
+          var thisMonthCom = thisMonthData.thisMonth;
+          var lastMonthCom = thisMonthData.previousMonth;
+          var monthPercentChange = thisMonthData.percentChange;
+
+          $('#thisMonthCom').text(thisMonthCom.toLocaleString() + " 건");
+          if (monthPercentChange < 0) {
+            $('#lastMonthCom').html('<i class="fas fa-arrow-down text-danger"></i> 전월 ' + lastMonthCom.toLocaleString()  + '건').addClass('text-danger').removeClass('text-success');
+          } else {
+            $('#lastMonthCom').html('<i class="fas fa-arrow-up text-success"></i> 전월 ' + lastMonthCom.toLocaleString()  + '건').addClass('text-success').removeClass('text-danger');
+          }
+
+          if (monthPercentChange < 0) {
+            $('#monthChangeArrow').removeClass('fa-arrow-up').addClass('fa-arrow-down text-danger');
+            $('#monthPercentChange').text(monthPercentChange.toLocaleString()  + '%');
+          } else {
+            $('#monthChangeArrow').removeClass('fa-arrow-down').addClass('fa-arrow-up text-success');
+            $('#monthPercentChange').text('+' + monthPercentChange.toLocaleString()  + '%');
+          }
+
+
+        },
+        error: function(error) {
+          console.error('Error loading dashboard data', error);
+        }
+      });
+    }
+    function refreshCard(cardType) {
+      var card = null;
+      switch(cardType) {
+        case 'today':
+          card = $('#todayCard');
+          break;
+        case 'month':
+          card = $('#monthCard');
+          break;
+        case 'fee':
+          card = $('#feeCard');
+          break;
+        case 'avg':
+          card = $('#avgCard');
+          break;
+        default:
+          console.error('Unknown card type for refresh');
+          return;
+      }
+
+      if (card) {
+        var refreshIcon = card.find('.refresh-icon');
+        var loadingOverlay = $('<div class="loading-overlay"><div class="loading-spinner"></div></div>');
+        card.append(loadingOverlay);
+
+        $.ajax({
+          url: '/api/dashboard-data',
+          method: 'GET',
+          success: function(response) {
+            loadDashboardData();
+          },
+          complete: function() {
+            loadingOverlay.remove();
+            refreshIcon.show();
+          }
+        });
+      }
+    }
+
+
   </script>
 </div>
 </html>
