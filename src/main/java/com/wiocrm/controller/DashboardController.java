@@ -1,4 +1,5 @@
 package com.wiocrm.controller;
+import com.wiocrm.model.DashboardData;
 import com.wiocrm.service.DashboardService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -8,6 +9,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import javax.servlet.http.HttpServletRequest;
 import java.security.Principal;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -27,6 +29,37 @@ public class DashboardController {
         String username = principal.getName();
        // dashboardService.printUserDetails();
         Map<String, Object> data = dashboardService.getDashboardData(username, request);
+        return ResponseEntity.ok(data);
+    }
+
+    @GetMapping("/api/dashboard-daily-tasks")
+    public ResponseEntity<Map<String, Object>> getDailyTasks(Principal principal,HttpServletRequest request) {
+        String username = principal.getName();
+        Map<String, Object> data = dashboardService.getDailyTasks(username,request);
+        return ResponseEntity.ok(data);
+    }
+
+    @GetMapping("/api/dashboard/company-fee-summary")
+    public ResponseEntity<Map<String, Object>> getCompanyFeeSummary() {
+        Map<String, Object> summary = dashboardService.getCompanyFeeSummary();
+        return ResponseEntity.ok(summary);
+    }
+
+    @GetMapping("/api/dashboard/company-fee-list")
+    public ResponseEntity<List<Map<String, Object>>> getCompanyFeeList() {
+        List<Map<String, Object>> feeList = dashboardService.getCompanyFeeList();
+        return ResponseEntity.ok(feeList);
+    }
+
+    @GetMapping("/api/dashboard/estimated-monthly-fee")
+    public ResponseEntity<Map<String, Object>> getEstimatedMonthlyFee() {
+        Map<String, Object> data = dashboardService.getEstimatedMonthlyFee();
+        return ResponseEntity.ok(data);
+    }
+
+    @GetMapping("/api/dashboard/consultant-fees")
+    public ResponseEntity<List<Map<String, Object>>> getConsultantFeesList() {
+        List<Map<String, Object>> data = dashboardService.getConsultantFeesList();
         return ResponseEntity.ok(data);
     }
     @GetMapping("/api/dashboard-callCount-data")

@@ -18,4 +18,6 @@ public interface UserMapper {
     List<Map<String, Object>>getUserMenu(@Param("username") String username);
 
     UserInfo findUserInfo(@Param("username") String username);
+    @Select("SELECT POSITION FROM N_TEMP01 WHERE USERID = #{userId}")
+    String findPositionByUserId(@Param("userId") String userId);
 }

@@ -72,18 +72,41 @@ public class DashboardService {
         Map<String, Object> data = new HashMap<>();
         User user = (User) session.getAttribute("user");
     // 사용자 유형에 따른 처리
-        DashboardData card1Data = dashboardMapper.findDataForCard1(user.getUserId());//오늘  전일 처리건
-        DashboardData card2Data = dashboardMapper.findDataForCard2(user.getUserId());//이번달 전달 처리건
+        DashboardData card1Data = dashboardMapper.findDataForCard1(user.getUserId());//일,월  처리건
         List<DashboardData> pointList = dashboardMapper.findPointList(user.getUserId()); //이번달 수수료
         DashboardData avgHourlyData = dashboardMapper.findAvgHourlyData(user.getUserId()); //시간당 평균 처리건
 
         data.put("card-data-1", card1Data);
-        data.put("card-data-2", card2Data);
         data.put("pointlist-data", pointList);
         data.put("avg-hourly-data", avgHourlyData);
 
         return data;
     }
+
+    public Map<String, Object> getDailyTasks(String username,HttpServletRequest request) {
+        HttpSession session = request.getSession();
+        User user = (User) session.getAttribute("user");
+        Map<String, Object> data = new HashMap<>();
+        List<DashboardData> dailyTasks = dashboardMapper.getDailyTasks(user.getUserId());
+        data.put("dailyTasks", dailyTasks);
+        return data;
+    }
+
+    public Map<String, Object> getCompanyFeeSummary() {
+        return dashboardMapper.getCompanyFeeSummary();
+    }
+    public List<Map<String, Object>> getCompanyFeeList() {
+        return dashboardMapper.getCompanyFeeList();
+    }
+    public Map<String, Object> getEstimatedMonthlyFee() {
+        return dashboardMapper.getEstimatedMonthlyFee();
+    }
+
+
+    public List<Map<String, Object>> getConsultantFeesList() {
+        return dashboardMapper.getConsultantFeesList();
+    }
+
     //로그인 유저별 코드 (거래처 는 업체 코드)
     private String getCurrentUserCustCode() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();

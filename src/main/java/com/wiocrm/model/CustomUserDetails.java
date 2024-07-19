@@ -11,6 +11,15 @@ public class CustomUserDetails implements UserDetails {
     private final User user;
     private final List<Map<String, Object>> menuList;
 
+    private String position;
+
+    public String getPosition() {
+        return position;
+    }
+
+    public void setPosition(String position) {
+        this.position = position;
+    }
     public CustomUserDetails(User user, List<Map<String, Object>> menuList) {
         this.user = user;
         this.menuList = menuList;

@@ -3,18 +3,29 @@ package com.wiocrm.mapper;
 
 import com.wiocrm.model.DashboardData;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
+import java.util.Map;
 
 @Mapper
 public interface DashboardMapper {
     DashboardData findDataForCard1(String userId);
 
-    DashboardData findDataForCard2(String custCode);
 
     List<DashboardData> findPointList(String custCode);
 
     DashboardData findAvgHourlyData(String custCode);
+
+
+    List<DashboardData> getDailyTasks(String userId);
+
+    Map<String, Object> getCompanyFeeSummary();
+    List<Map<String, Object>> getCompanyFeeList();
+
+    Map<String, Object> getEstimatedMonthlyFee();
+
+    List<Map<String, Object>> getConsultantFeesList();
 
     List<DashboardData> getDashboardCallCount(String custCode);
 

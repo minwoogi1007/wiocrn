@@ -57,6 +57,9 @@ public class DashboardData {
 
     private int percentChange;
 
+    private int monthPercentChange;
+
+
     private String weekDay;
     private int avg1week;
     private int avg1month;
@@ -118,6 +121,13 @@ public class DashboardData {
 
     private String SUMLOSSMONTH;
 
+    public int getMonthPercentChange() {
+        return monthPercentChange;
+    }
+
+    public void setMonthPercentChange(int monthPercentChange) {
+        this.monthPercentChange = monthPercentChange;
+    }
 
     public String getCUST_NAME() {
         return CUST_NAME;

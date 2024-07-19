@@ -17,6 +17,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
+import org.springframework.security.web.session.HttpSessionEventPublisher;
 
 import javax.servlet.http.HttpSession;
 import java.util.List;
@@ -56,14 +57,30 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .formLogin()
                 .loginPage("/login")
                 .loginProcessingUrl("/doLogin")
-                .successHandler(authenticationSuccessHandler()) // 성공 핸들러 설정
+                .successHandler(authenticationSuccessHandler())
                 .failureUrl("/login?error=invalid")
                 .permitAll()
                 .and()
                 .logout()
                 .logoutUrl("/logout")
                 .logoutSuccessUrl("/login?logout")
-                .permitAll();
+                .permitAll()
+                .and()
+                .sessionManagement()
+                .maximumSessions(1)
+                .expiredUrl("/login?expired")
+                .and()
+                .invalidSessionUrl("/login?invalid")
+                .sessionFixation().migrateSession()
+                .and()
+                .rememberMe()
+                .key("uniqueAndSecret")
+                .tokenValiditySeconds(3600); // 1시간
+
+        http.sessionManagement()
+                .sessionFixation().migrateSession()
+                .maximumSessions(1)
+                .expiredUrl("/login?expired");
     }
 
     @Bean
@@ -92,14 +109,19 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
                 HttpSession session = request.getSession();
                 session.setAttribute("user", user);
-                System.out.println("user============================================================"+user.getUserId());
-                System.out.println("user============================================================"+user.getConfirmYn());
 
                 session.setAttribute("menuListJson", menuListJson);
-                session.setAttribute("userPosition", userInfo.getPOSITION()); // 추가된 부분
+                session.setAttribute("userPosition", userDetails.getPosition());
+
+                // 세션 만료 시간 설정 (1시간)
+                session.setMaxInactiveInterval(3600);
 
                 response.sendRedirect("/layout");
             }
         };
+    }
+    @Bean
+    public HttpSessionEventPublisher httpSessionEventPublisher() {
+        return new HttpSessionEventPublisher();
     }
 }

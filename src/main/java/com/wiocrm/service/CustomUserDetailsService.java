@@ -31,8 +31,18 @@ public class CustomUserDetailsService implements UserDetailsService {
             throw new UsernameNotFoundException(username);
         }
 
+
+        // 메뉴 리스트 가져오기
         List<Map<String, Object>> menuList = userMapper.getUserMenu(username);
-        return new CustomUserDetails(user, menuList);
+
+        // N_TEMP01 테이블에서 POSITION 정보 가져오기
+        String position = userMapper.findPositionByUserId(user.getUserId());
+
+        // CustomUserDetails 객체 생성 및 정보 설정
+        CustomUserDetails customUserDetails = new CustomUserDetails(user, menuList);
+        customUserDetails.setPosition(position);
+
+        return customUserDetails;
     }
 
     // Existing methods for finding user and temp user

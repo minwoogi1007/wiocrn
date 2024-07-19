@@ -115,7 +115,47 @@
         opacity: 0;
       }
     }
-
+    @media (max-width: 768px) {
+      .col-md-3, .col-md-4 {
+        flex: 0 0 100%;
+        max-width: 100%;
+        margin-bottom: 15px;
+      }
+    }
+    .info-box {
+      border-radius: 0.25rem;
+      box-shadow: 0 0 1px rgba(0,0,0,.125), 0 1px 3px rgba(0,0,0,.2);
+      display: block;
+      margin-bottom: 20px;
+      min-height: 90px;
+      padding: 15px;
+      position: relative;
+    }
+    .info-box-content {
+      padding: 5px 10px;
+      flex: 1;
+    }
+    .info-box-text {
+      display: block;
+      font-size: 14px;
+      margin-bottom: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .info-box-number {
+      display: block;
+      font-size: 18px;
+      font-weight: bold;
+    }
+    .card {
+      box-shadow: 0 0 1px rgba(0,0,0,.125), 0 1px 3px rgba(0,0,0,.2);
+      margin-bottom: 1rem;
+    }
+    .table-responsive {
+      max-height: 400px;
+      overflow-y: auto;
+    }
   </style>
 </head>
 <body class="hold-transition sidebar-mini layout-fixed">

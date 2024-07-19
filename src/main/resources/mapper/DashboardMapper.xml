@@ -2,243 +2,424 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.wiocrm.mapper.DashboardMapper">
     <select id="findDataForCard1" resultType="com.wiocrm.model.DashboardData">
+
+        WITH DateRanges AS (
         SELECT
-        todayData.todayCom as todayCom,
-        previousData.previousCom as yesterdayCom,
-        ROUND(
+        TRUNC(SYSDATE) AS today,
         CASE
-        WHEN previousData.previousCom = 0 THEN 100
-        ELSE ((todayData.todayCom - previousData.previousCom) / previousData.previousCom) * 100
-        END, 2
-        ) AS percentChange
-        FROM
-        (SELECT COUNT(*) AS todayCom
-        FROM TBND01 T
-        JOIN N_TEMP01 N ON T.EMPNO = N.EMPNO
-        WHERE T.PRC_GUBN = '2'
-        AND TRUNC(T.IN_DATE) = TRUNC(SYSDATE)
-        AND (
-            <![CDATA[
-            (SELECT POSITION FROM N_TEMP01 WHERE USERID =  #{userId} ) <= '80' AND N.USERID =  #{userId}
-            OR (SELECT POSITION FROM N_TEMP01 WHERE USERID =  #{userId} ) > '80'
-            ]]>
-        )
-        ) todayData,
-        (SELECT COUNT(*) AS previousCom
-        FROM TBND01 T
-        JOIN N_TEMP01 N ON T.EMPNO = N.EMPNO
-        WHERE T.PRC_GUBN = '2'
-        AND TRUNC(T.IN_DATE) = TRUNC(
-                CASE
-                    WHEN TO_CHAR(SYSDATE - 1, 'D') = '1' THEN SYSDATE - 3  -- 어제가 일요일이면, 지난 금요일
-                    WHEN TO_CHAR(SYSDATE - 1, 'D') = '7' THEN SYSDATE - 2  -- 어제가 토요일이면, 지난 금요일
-                    ELSE SYSDATE - 1
-                    END
-        )
-        AND (
-            <![CDATA[
-            (SELECT POSITION FROM N_TEMP01 WHERE USERID =  #{userId} ) <= '80' AND N.USERID =  #{userId}
-            OR (SELECT POSITION FROM N_TEMP01 WHERE USERID =  #{userId} ) > '80'
-            ]]>
-        )
-        ) previousData
-    </select>
-
-    <select id="findDataForCard2" resultType="com.wiocrm.model.DashboardData">
-        SELECT
-        thisMonthData.thisMonthCom as thisMonth,
-        lastMonthData.lastMonthCom as previousMonth,
-        ROUND(
-        CASE
-        WHEN lastMonthData.lastMonthCom = 0 THEN 100
-        ELSE ((thisMonthData.thisMonthCom - lastMonthData.lastMonthCom) / lastMonthData.lastMonthCom) * 100
-        END, 2
-        ) AS percentChange
-        FROM
-        (SELECT COUNT(*) AS thisMonthCom
-        FROM TBND01 T
-        JOIN N_TEMP01 N ON T.EMPNO = N.EMPNO
-        WHERE T.PRC_GUBN = '2'
-        AND TRUNC(T.IN_DATE, 'MM') = TRUNC(SYSDATE, 'MM')
-        AND (
-            <![CDATA[
-            (SELECT POSITION FROM N_TEMP01 WHERE USERID = #{userId}) <= '80' AND N.USERID = #{userId}
-            OR (SELECT POSITION FROM N_TEMP01 WHERE USERID = #{userId}) > '80'
-            ]]>
-        )
-        ) thisMonthData,
-        (SELECT COUNT(*) AS lastMonthCom
-        FROM TBND01 T
-        JOIN N_TEMP01 N ON T.EMPNO = N.EMPNO
-        WHERE T.PRC_GUBN = '2'
-        AND TRUNC(T.IN_DATE, 'MM') = TRUNC(ADD_MONTHS(SYSDATE, -1), 'MM')
-        AND (
-            <![CDATA[
-            (SELECT POSITION FROM N_TEMP01 WHERE USERID = #{userId}) <= '80' AND N.USERID = #{userId}
-            OR (SELECT POSITION FROM N_TEMP01 WHERE USERID = #{userId}) > '80'
-            ]]>
-        )
-        ) lastMonthData
-
-    </select>
-    <select id="findPointList" resultType="com.wiocrm.model.DashboardData">
-
-        WITH CurrentMonthCalls AS (
-        SELECT
-        T.EMPNO,
-        COUNT(*) AS callCount,
-        (CASE
-        WHEN COUNT(*) >= 3045 THEN (COUNT(*) - 3045) * 500 + 2390000
-        WHEN COUNT(*) >= 2730 THEN (COUNT(*) - 2730) * 500 + 2060000
-        WHEN COUNT(*) >= 2520 THEN (COUNT(*) - 2520) * 500 + 1840000
-        WHEN COUNT(*) >= 2310 THEN (COUNT(*) - 2310) * 500 + 1620000
-        WHEN COUNT(*) >= 2100 THEN (COUNT(*) - 2100) * 500 + 1400000
-        WHEN COUNT(*) >= 1890 THEN (COUNT(*) - 1890) * 500 + 1050000
-        WHEN COUNT(*) >= 1680 THEN (COUNT(*) - 1680) * 500 + 900000
-        ELSE COUNT(*) * 500
-        END) AS pointSum
-        FROM
-        TBND01 T
-        JOIN
-        N_TEMP01 N ON T.EMPNO = N.EMPNO
-        WHERE
-        EXTRACT(MONTH FROM T.IN_DATE) = EXTRACT(MONTH FROM SYSDATE)
-        AND EXTRACT(YEAR FROM T.IN_DATE) = EXTRACT(YEAR FROM SYSDATE)
-        AND T.PRC_GUBN='2'
-        GROUP BY
-        T.EMPNO
+        WHEN TO_CHAR(SYSDATE - 1, 'D') = '1' THEN TRUNC(SYSDATE) - 3
+        WHEN TO_CHAR(SYSDATE - 1, 'D') = '7' THEN TRUNC(SYSDATE) - 2
+        ELSE TRUNC(SYSDATE) - 1
+        END AS yesterday,
+        TRUNC(SYSDATE, 'MM') AS this_month_start,
+        ADD_MONTHS(TRUNC(SYSDATE, 'MM'), -1) AS last_month_start,
+        ADD_MONTHS(TRUNC(SYSDATE, 'MM'), 1) AS next_month_start
+        FROM DUAL
         ),
-        PreviousMonthCalls AS (
+        UserInfo AS (
+        SELECT USERID, TO_NUMBER(POSITION) AS POSITION, EMPNO
+        FROM N_TEMP01
+        WHERE USERID = #{userId}
+        ),
+        AllData AS (
         SELECT
-        T.EMPNO,
-        (CASE
-        WHEN COUNT(*) >= 3045 THEN (COUNT(*) - 3045) * 500 + 2390000
-        WHEN COUNT(*) >= 2730 THEN (COUNT(*) - 2730) * 500 + 2060000
-        WHEN COUNT(*) >= 2520 THEN (COUNT(*) - 2520) * 500 + 1840000
-        WHEN COUNT(*) >= 2310 THEN (COUNT(*) - 2310) * 500 + 1620000
-        WHEN COUNT(*) >= 2100 THEN (COUNT(*) - 2100) * 500 + 1400000
-        WHEN COUNT(*) >= 1890 THEN (COUNT(*) - 1890) * 500 + 1050000
-        WHEN COUNT(*) >= 1680 THEN (COUNT(*) - 1680) * 500 + 900000
-        ELSE COUNT(*) * 500
-        END) AS pointSum
-        FROM
-        TBND01 T
-        JOIN
-        N_TEMP01 N ON T.EMPNO = N.EMPNO
-        WHERE
-        EXTRACT(MONTH FROM T.IN_DATE) = EXTRACT(MONTH FROM ADD_MONTHS(SYSDATE, -1))
-        AND EXTRACT(YEAR FROM T.IN_DATE) = EXTRACT(YEAR FROM ADD_MONTHS(SYSDATE, -1))
-        AND T.PRC_GUBN='2'
-        GROUP BY
-        T.EMPNO
+            <![CDATA[
+            COUNT(CASE WHEN T.IN_DATE >= dr.today THEN 1 END) AS today_count,
+        COUNT(CASE WHEN T.IN_DATE >= dr.yesterday AND T.IN_DATE < dr.today THEN 1 END) AS yesterday_count,
+        COUNT(CASE WHEN T.IN_DATE >= dr.this_month_start AND T.IN_DATE < dr.next_month_start THEN 1 END) AS this_month_count,
+        COUNT(CASE WHEN T.IN_DATE >= dr.last_month_start AND T.IN_DATE < dr.this_month_start THEN 1 END) AS last_month_count
+        FROM DateRanges dr
+        CROSS JOIN UserInfo ui
+        LEFT JOIN TBND01 T ON T.IN_DATE >= dr.last_month_start
+        AND T.PRC_GUBN = '2'
+        AND (ui.POSITION <= 80 AND T.EMPNO = ui.EMPNO
+        OR ui.POSITION > 80)
+        ]]>
         )
         SELECT
-        '이번달' AS period,
-        C.EMPNO,
-        C.pointSum
-        FROM
-        CurrentMonthCalls C
-        WHERE
-        <![CDATA[
-        (SELECT TO_NUMBER(POSITION) FROM N_TEMP01 WHERE USERID = #{userId}) <= 80
-        AND C.EMPNO = (SELECT EMPNO FROM N_TEMP01 WHERE USERID = #{userId})
-        ]]>
-        UNION ALL
-        SELECT
-        '전달' AS period,
-        P.EMPNO,
-        P.pointSum
-        FROM
-        PreviousMonthCalls P
-        WHERE
-        <![CDATA[
-        (SELECT TO_NUMBER(POSITION) FROM N_TEMP01 WHERE USERID = #{userId}) <= 80
-        AND P.EMPNO = (SELECT EMPNO FROM N_TEMP01 WHERE USERID = #{userId})
-        ]]>
-        UNION ALL
-        SELECT
-        '이번달 합계' AS period,
-        NULL AS EMPNO,
-        SUM(C.pointSum) AS pointSum
-        FROM
-        CurrentMonthCalls C
-        WHERE
-        (SELECT TO_NUMBER(POSITION) FROM N_TEMP01 WHERE USERID = #{userId}) > 80
-        UNION ALL
-        SELECT
-        '전달 합계' AS period,
-        NULL AS EMPNO,
-        SUM(P.pointSum) AS pointSum
-        FROM
-        PreviousMonthCalls P
-        WHERE
-        (SELECT TO_NUMBER(POSITION) FROM N_TEMP01 WHERE USERID = #{userId}) > 80
-        ORDER BY
-        period DESC, EMPNO
+        today_count AS todayCom,
+        yesterday_count AS yesterdayCom,
+        CASE
+        WHEN yesterday_count = 0 THEN 100
+        ELSE ROUND((today_count - yesterday_count) / yesterday_count * 100, 2)
+        END AS percentChange,
+        this_month_count AS thisMonth,
+        last_month_count AS previousMonth,
+        CASE
+        WHEN last_month_count = 0 THEN 100
+        ELSE ROUND((this_month_count - last_month_count) / last_month_count * 100, 2)
+        END AS monthPercentChange
+        FROM AllData
 
 
+    </select>
+
+
+    <select id="findPointList" resultType="com.wiocrm.model.DashboardData">
+        WITH DateRanges AS (
+        SELECT
+        TRUNC(SYSDATE, 'MM') AS current_month_start,
+        ADD_MONTHS(TRUNC(SYSDATE, 'MM'), -1) AS previous_month_start,
+        ADD_MONTHS(TRUNC(SYSDATE, 'MM'), 1) AS next_month_start
+        FROM DUAL
+        ),
+        UserInfo AS (
+        SELECT USERID, TO_NUMBER(POSITION) AS POSITION, EMPNO
+        FROM N_TEMP01
+        WHERE USERID = #{userId}
+        ),
+        CallData AS (
+        SELECT
+        T.EMPNO,
+        CASE
+        <![CDATA[
+            WHEN T.IN_DATE >= dr.current_month_start AND T.IN_DATE < dr.next_month_start THEN 'Current'
+        WHEN T.IN_DATE >= dr.previous_month_start AND T.IN_DATE < dr.current_month_start THEN 'Previous'
+        END AS month_type,
+        COUNT(*) AS call_count
+        FROM TBND01 T
+        CROSS JOIN DateRanges dr
+        WHERE T.PRC_GUBN = '2'
+        AND T.IN_DATE >= dr.previous_month_start
+        AND T.IN_DATE < dr.next_month_start
+                        GROUP BY T.EMPNO,
+        CASE
+        WHEN T.IN_DATE >= dr.current_month_start AND T.IN_DATE < dr.next_month_start THEN 'Current'
+        WHEN T.IN_DATE >= dr.previous_month_start AND T.IN_DATE < dr.current_month_start THEN 'Previous'
+        END
+        ),
+        PointCalculation AS (
+        SELECT
+        EMPNO,
+        month_type,
+        CASE
+        WHEN call_count >= 3045 THEN (call_count - 3045) * 500 + 2390000
+        WHEN call_count >= 2730 THEN (call_count - 2730) * 500 + 2060000
+        WHEN call_count >= 2520 THEN (call_count - 2520) * 500 + 1840000
+        WHEN call_count >= 2310 THEN (call_count - 2310) * 500 + 1620000
+        WHEN call_count >= 2100 THEN (call_count - 2100) * 500 + 1400000
+        WHEN call_count >= 1890 THEN (call_count - 1890) * 500 + 1050000
+        WHEN call_count >= 1680 THEN (call_count - 1680) * 500 + 900000
+        ELSE call_count * 500
+        END AS pointSum
+        FROM CallData
+        ),
+        CombinedResults AS (
+        SELECT
+        CASE
+        WHEN pc.month_type = 'Current' THEN '이번달'
+        WHEN pc.month_type = 'Previous' THEN '전달'
+        END AS period,
+        pc.EMPNO,
+        pc.pointSum,
+        CASE
+        WHEN pc.month_type = 'Current' THEN 1
+        ELSE 2
+        END AS sort_order
+        FROM PointCalculation pc
+        JOIN UserInfo ui ON ui.POSITION <= 80 AND pc.EMPNO = ui.EMPNO
+
+        UNION ALL
+
+        SELECT
+        CASE
+        WHEN pc.month_type = 'Current' THEN '이번달 합계'
+        WHEN pc.month_type = 'Previous' THEN '전달 합계'
+        END AS period,
+        NULL AS EMPNO,
+        SUM(pc.pointSum) AS pointSum,
+        CASE
+        WHEN pc.month_type = 'Current' THEN 3
+        ELSE 4
+        END AS sort_order
+        FROM PointCalculation pc
+        JOIN UserInfo ui ON ui.POSITION > 80
+                         ]]>
+        GROUP BY pc.month_type
+        )
+        SELECT
+        period,
+        EMPNO,
+        pointSum,
+        sort_order
+        FROM CombinedResults
+        ORDER BY sort_order, EMPNO NULLS FIRST
     </select>
     <select id="findAvgHourlyData" resultType="com.wiocrm.model.DashboardData">
 
-
-
+        WITH DateRanges AS (
         SELECT
-        today_avg.avgHourlyCount AS todayCom,
-        month_avg.avgHourlyCount AS thisMonth,
+        TRUNC(SYSDATE) AS today,
+        TRUNC(SYSDATE, 'MM') AS month_start
+        FROM DUAL
+        ),
+        UserInfo AS (
+        SELECT USERID, TO_NUMBER(POSITION) AS POSITION
+        FROM N_TEMP01
+        WHERE USERID = #{userId}
+        ),
+        HourlyData AS (
+        SELECT
+        TRUNC(T.IN_DATE, 'HH24') AS hour,
+        CASE
+        WHEN TRUNC(T.IN_DATE) = dr.today THEN 'Today'
+        ELSE 'Month'
+        END AS data_type,
+        COUNT(*) AS countPerHour
+        FROM TBND01 T
+        CROSS JOIN DateRanges dr
+        JOIN N_TEMP01 N ON T.EMPNO = N.EMPNO
+        JOIN UserInfo ui ON 1=1
+        WHERE T.PRC_GUBN = '2'
+        AND T.IN_DATE >= dr.month_start
+        <![CDATA[
+          AND ((ui.POSITION <= 80 AND N.USERID = ui.USERID) OR ui.POSITION > 80)
+        ]]>
+        GROUP BY
+        TRUNC(T.IN_DATE, 'HH24'),
+        CASE
+        WHEN TRUNC(T.IN_DATE) = dr.today THEN 'Today'
+        ELSE 'Month'
+        END
+        ),
+        AggregatedData AS (
+        SELECT
+        data_type,
+        FLOOR(AVG(countPerHour)) AS avgHourlyCount
+        FROM HourlyData
+        GROUP BY data_type
+        )
+        SELECT
+        (SELECT avgHourlyCount FROM AggregatedData WHERE data_type = 'Today') AS todayCom,
+        (SELECT avgHourlyCount FROM AggregatedData WHERE data_type = 'Month') AS thisMonth,
         ROUND(
         CASE
-        WHEN month_avg.avgHourlyCount = 0 THEN 100
-        ELSE ((today_avg.avgHourlyCount - month_avg.avgHourlyCount) / month_avg.avgHourlyCount) * 100
+        WHEN (SELECT avgHourlyCount FROM AggregatedData WHERE data_type = 'Month') = 0 THEN 100
+        ELSE (((SELECT avgHourlyCount FROM AggregatedData WHERE data_type = 'Today') -
+        (SELECT avgHourlyCount FROM AggregatedData WHERE data_type = 'Month')) /
+        (SELECT avgHourlyCount FROM AggregatedData WHERE data_type = 'Month')) * 100
         END, 2
         ) AS percentChange
-        FROM
-        (SELECT
-        FLOOR(AVG(hourly_counts.countPerHour)) AS avgHourlyCount
-        FROM
-        (
-        SELECT
-        TRUNC(T.IN_DATE, 'HH24') AS hour,
-        COUNT(*) AS countPerHour
-        FROM
-        TBND01 T
-        JOIN N_TEMP01 N ON T.EMPNO = N.EMPNO
-        WHERE
-        T.PRC_GUBN = '2'
-        AND TRUNC(T.IN_DATE) = TRUNC(SYSDATE)
-        AND (
-        <![CDATA[
-            (SELECT POSITION FROM N_TEMP01 WHERE USERID = #{userId} ) <= '80' AND N.USERID = #{userId}
-            OR (SELECT POSITION FROM N_TEMP01 WHERE USERID = #{userId} ) > '80'
-        ]]>
-        )
-        GROUP BY
-        TRUNC(T.IN_DATE, 'HH24')
-        ) hourly_counts
-        ) today_avg,
-        (SELECT
-        FLOOR(AVG(hourly_counts.countPerHour)) AS avgHourlyCount
-        FROM
-        (
-        SELECT
-        TRUNC(T.IN_DATE, 'HH24') AS hour,
-        COUNT(*) AS countPerHour
-        FROM
-        TBND01 T
-        JOIN N_TEMP01 N ON T.EMPNO = N.EMPNO
-        WHERE
-        T.PRC_GUBN = '2'
-        AND TRUNC(T.IN_DATE, 'MM') = TRUNC(SYSDATE, 'MM')
-        AND (
-        <![CDATA[
-            (SELECT POSITION FROM N_TEMP01 WHERE USERID = #{userId} ) <= '80' AND N.USERID = #{userId}
-            OR (SELECT POSITION FROM N_TEMP01 WHERE USERID = #{userId} ) > '80'
-        ]]>
-        )
-        GROUP BY
-        TRUNC(T.IN_DATE, 'HH24')
-        ) hourly_counts
-        ) month_avg
+        FROM DUAL
     </select>
+    <select id="getDailyTasks" resultType="com.wiocrm.model.DashboardData">
+        WITH UserInfo AS (
+        SELECT USERID, TO_NUMBER(POSITION) AS POSITION, EMPNO
+        FROM N_TEMP01
+        WHERE USERID = #{userId}
+        ),
+        DateRange AS (
+        SELECT TO_CHAR(TRUNC(SYSDATE, 'MM') + LEVEL - 1, 'YYYYMMDD') AS date_day
+        FROM DUAL
+        <![CDATA[
+        CONNECT BY LEVEL <= TO_NUMBER(TO_CHAR(SYSDATE, 'DD'))
+        ),
+        TaskCounts AS (
+        SELECT
+        TO_CHAR(T.IN_DATE, 'YYYYMMDD') AS task_date,
+        COUNT(*) AS task_count
+        FROM TBND01 T
+        CROSS JOIN UserInfo UI
+        WHERE T.PRC_GUBN = '2'
+        AND T.IN_DATE >= TO_CHAR(TRUNC(SYSDATE, 'MM'), 'YYYYMMDD')
+          AND T.IN_DATE <= TO_CHAR(SYSDATE + INTERVAL '1' DAY, 'YYYYMMDD')
+          AND (
+        (UI.POSITION <= 80 AND T.EMPNO = UI.EMPNO)
+        OR UI.POSITION > 80
+
+        )
+        GROUP BY TO_CHAR(T.IN_DATE, 'YYYYMMDD')
+        )
+        SELECT
+        D.date_day AS "POINT_DATE",
+        NVL(T.task_count, 0) AS "DAILY_PRCSUM"
+        FROM DateRange D
+        LEFT JOIN TaskCounts T ON D.date_day = T.task_date
+        WHERE D.date_day <= TO_CHAR(SYSDATE, 'YYYYMMDD')  -- 오늘 날짜까지만 표시
+        ]]>
+        ORDER BY D.date_day
+    </select>
+
+
+
+    <select id="getCompanyFeeSummary" resultType="map">
+        WITH DateRanges AS (
+            SELECT
+                TO_CHAR(SYSDATE, 'YYYYMMDD') AS today,
+                TO_CHAR(TRUNC(SYSDATE, 'MM'), 'YYYYMMDD') AS firstDayOfMonth,
+                TO_CHAR(ADD_MONTHS(TRUNC(SYSDATE, 'MM'), -1), 'YYYYMMDD') AS firstDayOfLastMonth,
+                TO_CHAR(ADD_MONTHS(SYSDATE, -1), 'YYYYMMDD') AS lastMonthToday,
+                TO_CHAR(LAST_DAY(ADD_MONTHS(SYSDATE, -1)), 'YYYYMMDD') AS lastDayOfLastMonth
+            FROM DUAL
+        )
+        SELECT
+                SUM(CASE WHEN TO_CHAR(tp.IN_DATE, 'YYYYMMDD') = dr.today THEN tp.POINT ELSE 0 END) * -1 AS todayCompanyFee,
+                SUM(CASE WHEN TO_CHAR(tp.IN_DATE, 'YYYYMMDD') BETWEEN dr.firstDayOfMonth AND dr.today THEN tp.POINT ELSE 0 END) * -1 AS thisMonthCompanyFee,
+                SUM(CASE
+                        WHEN TO_CHAR(tp.IN_DATE, 'YYYYMMDD') BETWEEN dr.firstDayOfLastMonth
+                            AND TO_CHAR(ADD_MONTHS(SYSDATE, -1), 'YYYYMMDD')
+                            THEN tp.POINT
+                        ELSE 0
+                    END) * -1 AS lastMonthTodayCompanyFee,
+                SUM(CASE WHEN TO_CHAR(tp.IN_DATE, 'YYYYMMDD') BETWEEN dr.firstDayOfLastMonth AND dr.lastDayOfLastMonth THEN tp.POINT ELSE 0 END) * -1 AS lastMonthCompanyFee
+        FROM
+            TCNT01_POINT tp
+                CROSS JOIN
+            DateRanges dr
+        WHERE
+            tp.POINT_CHARGE IS NULL
+          AND tp.PERSON_CODE IS NOT NULL
+          AND tp.CALL_CODE IS NOT NULL
+          AND TO_CHAR(tp.IN_DATE, 'YYYYMMDD') BETWEEN dr.firstDayOfLastMonth AND dr.today
+    </select>
+
+
+    <select id="getCompanyFeeList" resultType="map">
+        WITH DateRanges AS (
+            SELECT
+                TO_CHAR(TRUNC(SYSDATE, 'MM'), 'YYYYMMDD') AS firstDayOfMonth,
+                TO_CHAR(SYSDATE, 'YYYYMMDD') AS today,
+                TO_CHAR(ADD_MONTHS(TRUNC(SYSDATE, 'MM'), -1), 'YYYYMMDD') AS firstDayOfLastMonth,
+                TO_CHAR(LAST_DAY(ADD_MONTHS(SYSDATE, -1)), 'YYYYMMDD') AS lastDayOfLastMonth
+            FROM DUAL
+        )
+        SELECT
+            c.CUST_NAME AS companyName,
+            SUM(CASE
+                    WHEN TO_CHAR(tp.IN_DATE, 'YYYYMMDD') = dr.today
+                        THEN tp.POINT
+                    ELSE 0
+                END) * -1 AS todayFee,
+            SUM(CASE
+                    WHEN TO_CHAR(tp.IN_DATE, 'YYYYMMDD') BETWEEN dr.firstDayOfMonth AND dr.today
+                        THEN tp.POINT
+                    ELSE 0
+                END) * -1 AS thisMonthFee,
+            SUM(CASE
+                    WHEN TO_CHAR(tp.IN_DATE, 'YYYYMMDD') BETWEEN dr.firstDayOfLastMonth AND dr.lastDayOfLastMonth
+                        THEN tp.POINT
+                    ELSE 0
+                END) * -1 AS lastMonthFee
+        FROM
+            TCNT01_POINT tp
+                JOIN
+            TCNT01 c ON tp.CUST_CODE = c.CUST_CODE
+                CROSS JOIN
+            DateRanges dr
+        WHERE
+            tp.POINT_CHARGE IS NULL
+          AND tp.PERSON_CODE IS NOT NULL
+          AND tp.CALL_CODE IS NOT NULL
+          AND TO_CHAR(tp.IN_DATE, 'YYYYMMDD') BETWEEN dr.firstDayOfLastMonth AND dr.today
+        GROUP BY
+            c.CUST_NAME
+        ORDER BY
+            thisMonthFee DESC
+    </select>
+    <select id="getConsultantFeesList" resultType="map">
+        WITH DateRanges AS (
+            SELECT
+                TRUNC(SYSDATE, 'MM') AS firstDayOfMonth,
+                SYSDATE AS today
+            FROM DUAL
+        ),
+             CallCounts AS (
+                 SELECT
+                     EMPNO,
+                     COUNT(*) AS call_count,
+                     SUM(CASE WHEN TRUNC(IN_DATE) = TRUNC(SYSDATE) THEN 1 ELSE 0 END) AS today_call_count
+                 FROM
+                     TBND01
+                 WHERE
+                     PRC_GUBN = '2'
+                   AND IN_DATE BETWEEN (SELECT firstDayOfMonth FROM DateRanges) AND (SELECT today FROM DateRanges)
+                 GROUP BY
+                     EMPNO
+             ),
+             FeesCalculation AS (
+                 SELECT
+                     EMPNO,
+                     call_count,
+                     today_call_count,
+                     CASE
+                         WHEN call_count >= 3045 THEN (call_count - 3045) * 500 + 2390000
+                         WHEN call_count >= 2730 THEN (call_count - 2730) * 500 + 2060000
+                         WHEN call_count >= 2520 THEN (call_count - 2520) * 500 + 1840000
+                         WHEN call_count >= 2310 THEN (call_count - 2310) * 500 + 1620000
+                         WHEN call_count >= 2100 THEN (call_count - 2100) * 500 + 1400000
+                         WHEN call_count >= 1890 THEN (call_count - 1890) * 500 + 1050000
+                         WHEN call_count >= 1680 THEN (call_count - 1680) * 500 + 900000
+                         ELSE call_count * 500
+                         END AS total_fee
+                 FROM
+                     CallCounts
+             )
+        SELECT
+            fc.EMPNO AS empNo,
+            e.EMP_NAME AS empName,
+            fc.call_count AS totalCalls,
+            fc.today_call_count AS todayCalls,
+            fc.total_fee AS monthFee,
+            ROUND(fc.total_fee / NULLIF(fc.call_count, 0), 2) AS feePerCall,
+            ROUND((fc.total_fee / NULLIF(fc.call_count, 0)) * fc.today_call_count, 2) AS todayFee
+        FROM
+            FeesCalculation fc
+                JOIN
+            TEMP01 e ON fc.EMPNO = e.EMPNO
+        ORDER BY
+            fc.total_fee DESC
+    </select>
+
+
+    <select id="getEstimatedMonthlyFee" resultType="map">
+        <![CDATA[
+        WITH DateRanges AS (
+        SELECT
+        TRUNC(SYSDATE, 'MM') AS firstDayOfMonth,
+        LAST_DAY(SYSDATE) AS lastDayOfMonth,
+        SYSDATE AS today
+        FROM DUAL
+        ),
+        WorkingDays AS (
+        SELECT
+        COUNT(*) AS totalWorkingDays,
+        SUM(CASE WHEN d.dt <= SYSDATE THEN 1 ELSE 0 END) AS workingDaysPassed
+        FROM
+        DateRanges,
+        (SELECT firstDayOfMonth + LEVEL - 1 AS dt
+        FROM DateRanges
+        CONNECT BY LEVEL <= (lastDayOfMonth - firstDayOfMonth + 1)
+        ) d
+        WHERE
+        TO_CHAR(d.dt, 'DY', 'NLS_DATE_LANGUAGE=AMERICAN') NOT IN ('SAT', 'SUN')
+        ),
+        CurrentMonthData AS (
+        SELECT
+        SUM(tp.POINT) * -1 AS currentMonthSum
+        FROM
+        TCNT01_POINT tp,
+        DateRanges dr
+        WHERE
+        tp.POINT_CHARGE IS NULL
+        AND tp.PERSON_CODE IS NOT NULL
+        AND tp.CALL_CODE IS NOT NULL
+        AND tp.IN_DATE BETWEEN dr.firstDayOfMonth AND dr.today
+        AND TO_CHAR(tp.IN_DATE, 'DY', 'NLS_DATE_LANGUAGE=AMERICAN') NOT IN ('SAT', 'SUN')
+        )
+        SELECT
+        wd.totalWorkingDays,
+        wd.workingDaysPassed,
+        ROUND(cmd.currentMonthSum / wd.workingDaysPassed, 2) AS dailyAverage,
+        ROUND(cmd.currentMonthSum +
+        (cmd.currentMonthSum / wd.workingDaysPassed * (wd.totalWorkingDays - wd.workingDaysPassed)), 2)
+        AS estimatedMonthTotal
+        FROM
+        WorkingDays wd,
+        CurrentMonthData cmd
+        ]]>
+    </select>
+
+
     <select id="dashStatCount" resultType="com.wiocrm.model.DashboardData">
 
 
