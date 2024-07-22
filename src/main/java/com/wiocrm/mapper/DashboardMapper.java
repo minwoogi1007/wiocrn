@@ -26,7 +26,10 @@ public interface DashboardMapper {
     Map<String, Object> getEstimatedMonthlyFee();
 
     List<Map<String, Object>> getConsultantFeesList();
+    List<Map<String, Object>> getWeeklyFees(String userId);
 
+
+    List<Map<String, Object>> getDeviceTrafficData(String userId);
     List<DashboardData> getDashboardCallCount(String custCode);
 
     List<DashboardData> getDashboardPersonCount(String custCode);

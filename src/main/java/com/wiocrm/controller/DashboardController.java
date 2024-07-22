@@ -62,6 +62,21 @@ public class DashboardController {
         List<Map<String, Object>> data = dashboardService.getConsultantFeesList();
         return ResponseEntity.ok(data);
     }
+
+
+    @GetMapping("/api/dashboard/weekly-fees")
+    public ResponseEntity<List<Map<String, Object>>> getWeeklyFees(HttpServletRequest request) {
+
+        List<Map<String, Object>> data = dashboardService.getWeeklyFees(request);
+        return ResponseEntity.ok(data);
+    }
+
+    @GetMapping("/api/dashboard/device-traffic")
+    public ResponseEntity<List<Map<String, Object>>> getDeviceTrafficData(HttpServletRequest request) {
+        List<Map<String, Object>> data = dashboardService.getDeviceTrafficData(request);
+        return ResponseEntity.ok(data);
+    }
+
     @GetMapping("/api/dashboard-callCount-data")
     public ResponseEntity<Map<String, Object>> getDashboardConCount(Principal principal) {
 

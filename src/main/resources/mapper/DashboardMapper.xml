@@ -418,6 +418,120 @@
         CurrentMonthData cmd
         ]]>
     </select>
+    <select id="getWeeklyFees" resultType="map">
+        WITH DateRanges AS (
+        SELECT
+        TRUNC(SYSDATE, 'MM') AS month_start,
+        TRUNC(SYSDATE) + INTERVAL '1' DAY - INTERVAL '1' SECOND AS today
+        FROM DUAL
+        ),
+        UserInfo AS (
+        SELECT USERID, TO_NUMBER(POSITION) AS POSITION, EMPNO
+        FROM N_TEMP01
+        WHERE USERID = #{userId}
+        ),
+        MonthlyCallData AS (
+        SELECT
+        T.EMPNO,
+        TRUNC(T.IN_DATE) AS call_date,
+        COUNT(*) AS daily_call_count
+        FROM TBND01 T
+        CROSS JOIN DateRanges dr
+        WHERE T.PRC_GUBN = '2'
+        AND T.IN_DATE >= dr.month_start
+            <![CDATA[
+        AND T.IN_DATE <= dr.today
+        GROUP BY T.EMPNO, TRUNC(T.IN_DATE)
+        ),
+        AllDates AS (
+        SELECT dr.month_start + LEVEL - 1 AS date_day
+        FROM DateRanges dr
+        CONNECT BY LEVEL <= (TRUNC(dr.today) - dr.month_start + 1)
+        ),
+        MonthlyTotalCallData AS (
+        SELECT
+        EMPNO,
+        SUM(daily_call_count) AS monthly_call_count
+        FROM MonthlyCallData
+        GROUP BY EMPNO
+        ),
+        PointCalculation AS (
+        SELECT
+        NVL(mc.EMPNO, mtc.EMPNO) AS EMPNO,
+        ad.date_day AS call_date,
+        NVL(mc.daily_call_count, 0) AS daily_call_count,
+        mtc.monthly_call_count,
+        CASE
+        WHEN mtc.monthly_call_count >= 3045 THEN (mtc.monthly_call_count - 3045) * 500 + 2390000
+        WHEN mtc.monthly_call_count >= 2730 THEN (mtc.monthly_call_count - 2730) * 500 + 2060000
+        WHEN mtc.monthly_call_count >= 2520 THEN (mtc.monthly_call_count - 2520) * 500 + 1840000
+        WHEN mtc.monthly_call_count >= 2310 THEN (mtc.monthly_call_count - 2310) * 500 + 1620000
+        WHEN mtc.monthly_call_count >= 2100 THEN (mtc.monthly_call_count - 2100) * 500 + 1400000
+        WHEN mtc.monthly_call_count >= 1890 THEN (mtc.monthly_call_count - 1890) * 500 + 1050000
+        WHEN mtc.monthly_call_count >= 1680 THEN (mtc.monthly_call_count - 1680) * 500 + 900000
+        ELSE mtc.monthly_call_count * 500
+        END * (NVL(mc.daily_call_count, 0) / NULLIF(mtc.monthly_call_count, 0)) AS daily_point_sum
+        FROM AllDates ad
+        CROSS JOIN MonthlyTotalCallData mtc
+        LEFT JOIN MonthlyCallData mc ON mc.EMPNO = mtc.EMPNO AND mc.call_date = ad.date_day
+        ),
+        UserPosition AS (
+        SELECT POSITION FROM UserInfo
+        ),
+        CombinedResults AS (
+        SELECT
+        TO_CHAR(pc.call_date, 'YYYY-MM-DD') AS period,
+        SUM(CASE
+        WHEN (SELECT POSITION FROM UserPosition) <= 80 AND pc.EMPNO = (SELECT EMPNO FROM UserInfo) THEN pc.daily_point_sum
+        WHEN (SELECT POSITION FROM UserPosition) > 80 THEN pc.daily_point_sum
+        ELSE 0
+        END) AS pointSum
+        FROM PointCalculation pc
+        GROUP BY pc.call_date
+        )
+        SELECT
+        period,
+        ROUND(pointSum, 0) AS pointSum
+        FROM CombinedResults
+        ORDER BY period
+            ]]>
+    </select>
+    <select id="getDeviceTrafficData" resultType="map">
+        WITH DateRanges AS (
+        SELECT TRUNC(SYSDATE, 'MM') AS month_start,
+        TRUNC(SYSDATE + 1) - 1/(24*60*60) AS today
+        FROM DUAL
+        ),
+        UserInfo AS (
+        SELECT USERID, TO_NUMBER(POSITION) AS POSITION, EMPNO, EMP_NAME
+        FROM N_TEMP01
+        WHERE USERID = #{userId}
+        ),
+        TrafficData AS (
+        SELECT T.CUST_CODE,
+        C.CUST_NAME,
+        COUNT(*) AS count
+        FROM TBND01 T
+        JOIN TCNT01 C ON T.CUST_CODE = C.CUST_CODE
+        CROSS JOIN DateRanges dr
+        CROSS JOIN UserInfo ui
+        WHERE T.PRC_GUBN = '2'
+        <![CDATA[
+          AND T.IN_DATE >= dr.month_start
+        AND T.IN_DATE <= dr.today
+        AND (ui.POSITION > 80 OR T.EMPNO = ui.EMPNO)
+        GROUP BY T.CUST_CODE, C.CUST_NAME
+        ),
+        UserPosition AS (
+        SELECT POSITION FROM UserInfo
+        )
+        SELECT td.CUST_CODE,
+        td.CUST_NAME,
+        td.count
+        FROM TrafficData td
+        ORDER BY td.count DESC
+        ]]>
+    </select>
 
 
     <select id="dashStatCount" resultType="com.wiocrm.model.DashboardData">

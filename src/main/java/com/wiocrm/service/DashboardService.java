@@ -107,6 +107,17 @@ public class DashboardService {
         return dashboardMapper.getConsultantFeesList();
     }
 
+    public List<Map<String, Object>> getWeeklyFees(HttpServletRequest request) {
+        HttpSession session = request.getSession();
+        User user = (User) session.getAttribute("user");
+        return dashboardMapper.getWeeklyFees(user.getUserId());
+    }
+
+    public List<Map<String, Object>> getDeviceTrafficData(HttpServletRequest request) {
+        HttpSession session = request.getSession();
+        User user = (User) session.getAttribute("user");
+        return dashboardMapper.getDeviceTrafficData(user.getUserId());
+    }
     //로그인 유저별 코드 (거래처 는 업체 코드)
     private String getCurrentUserCustCode() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();

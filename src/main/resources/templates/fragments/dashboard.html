@@ -323,13 +323,13 @@
     <div class="row">
       <div class="col-md-6">
         <div class="chart-container">
-          <h5>Traffic by Device</h5>
+          <h5>업체 상위 5</h5>
           <canvas id="deviceTrafficChart" class="chart"></canvas>
         </div>
       </div>
       <div class="col-md-6">
         <div class="chart-container">
-          <h5>Traffic by Location</h5>
+          <h5>상담 유형별</h5>
           <canvas id="locationTrafficChart" class="chart"></canvas>
         </div>
       </div>
@@ -340,6 +340,7 @@
 
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.4/dist/Chart.min.js"></script>
   <script>
 
     loadDashboardData();
@@ -517,29 +518,7 @@
         if (weeklyFeeCtx && dailyTasksCtx && deviceTrafficCtx && locationTrafficCtx) {
           console.log('캔버스 컨텍스트를 초기화했습니다.');
 
-          var weeklyFeeChart = new Chart(weeklyFeeCtx, {
-            type: 'line',
-            data: {
-              labels: ['월', '화', '수', '목', '금', '토', '일'],
-              datasets: [{
-                label: '주간 수수료',
-                data: [1200, 1900, 3000, 500, 2000, 3000, 4500],
-                backgroundColor: 'rgba(54, 162, 235, 0.2)',
-                borderColor: 'rgba(54, 162, 235, 1)',
-                borderWidth: 1
-              }]
-            },
-            options: {
-              responsive: true,
-              scales: {
-                yAxes: [{
-                  ticks: {
-                    beginAtZero: true
-                  }
-                }]
-              }
-            }
-          });
+
 
           var today = new Date();
           var labels = [];
@@ -551,43 +530,7 @@
 
 
 
-          var deviceTrafficChart = new Chart(deviceTrafficCtx, {
-            type: 'bar',
-            data: {
-              labels: ['Linux', 'Mac', 'iOS', 'Windows', 'Android', 'Other'],
-              datasets: [{
-                label: 'Traffic by Device',
-                data: [100, 200, 300, 400, 500, 600],
-                backgroundColor: [
-                  'rgba(75, 192, 192, 0.2)',
-                  'rgba(54, 162, 235, 0.2)',
-                  'rgba(255, 206, 86, 0.2)',
-                  'rgba(75, 192, 192, 0.2)',
-                  'rgba(153, 102, 255, 0.2)',
-                  'rgba(255, 159, 64, 0.2)'
-                ],
-                borderColor: [
-                  'rgba(75, 192, 192, 1)',
-                  'rgba(54, 162, 235, 1)',
-                  'rgba(255, 206, 86, 1)',
-                  'rgba(75, 192, 192, 1)',
-                  'rgba(153, 102, 255, 1)',
-                  'rgba(255, 159, 64, 1)'
-                ],
-                borderWidth: 1
-              }]
-            },
-            options: {
-              responsive: true,
-              scales: {
-                yAxes: [{
-                  ticks: {
-                    beginAtZero: true
-                  }
-                }]
-              }
-            }
-          });
+
 
           var locationTrafficChart = new Chart(locationTrafficCtx, {
             type: 'doughnut',
@@ -654,12 +597,16 @@
     var userPosition = /*[[${session.userPosition}]]*/ '0';
     /*]]>*/
 
+
     $(document).ready(function() {
+      loadWeeklyFeesChart();
+      updateDeviceTrafficChart();
       if (userPosition === '99') {
         loadCompanyFeeSummary();
         loadCompanyFeeList();
         loadEstimatedMonthlyFee();
         loadConsultantFeesList();
+
       }
     });
 
@@ -744,6 +691,140 @@
         return '0';
       }
       return new Intl.NumberFormat('ko-KR', { style: 'currency', currency: 'KRW' }).format(amount);
+    }
+
+    function loadWeeklyFeesChart() {
+      $.ajax({
+        url: '/api/dashboard/weekly-fees',
+        method: 'GET',
+        success: function(data) {
+          var labels = [];
+          var values = [];
+
+          data.forEach(function(item) {
+            if (item.period !== '이번주 합계') {
+              labels.push(item.PERIOD);
+              values.push(item.POINTSUM);
+            }
+          });
+
+          var ctx = document.getElementById('weeklyFeeChart').getContext('2d');
+          new Chart(ctx, {
+            type: 'bar',
+            data: {
+              labels: labels,
+              datasets: [{
+                label: '일별 수수료',
+                data: values,
+                backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                borderColor: 'rgba(75, 192, 192, 1)',
+                borderWidth: 1
+              }]
+            },
+            options: {
+              responsive: true,
+              scales: {
+                y: {
+                  beginAtZero: true,
+                  title: {
+                    display: true,
+                    text: '수수료 (원)'
+                  }
+                }
+              },
+              plugins: {
+                title: {
+                  display: true,
+                  text: '주간 수수료 차트'
+                },
+                legend: {
+                  display: false
+                }
+              }
+            }
+          });
+        },
+        error: function(error) {
+          console.error('주간 수수료 데이터 로드 실패:', error);
+        }
+      });
+    }
+
+    function updateDeviceTrafficChart() {
+      var xhr = new XMLHttpRequest();
+      xhr.open('GET', '/api/dashboard/device-traffic', true);
+      xhr.onreadystatechange = function() {
+        if (xhr.readyState === 4 && xhr.status === 200) {
+          var data = JSON.parse(xhr.responseText);
+          var labels = [];
+          var values = [];
+          var otherSum = 0;
+          var topN = 5; // 상위 5개만 표시
+
+          // 데이터를 count 기준으로 내림차순 정렬
+          data.sort(function(a, b) {
+            return b.COUNT - a.COUNT;
+          });
+
+          // 상위 N개 항목 처리
+          for (var i = 0; i < Math.min(topN, data.length); i++) {
+            labels.push(data[i].CUST_NAME);
+            values.push(data[i].COUNT);
+          }
+
+          // 나머지 항목을 '기타'로 합산
+          if (data.length > topN) {
+            for (var i = topN; i < data.length; i++) {
+              otherSum += data[i].COUNT;
+            }
+            labels.push('기타');
+            values.push(otherSum);
+          }
+
+          var ctx = document.getElementById('deviceTrafficChart').getContext('2d');
+          new Chart(ctx, {
+            type: 'pie',
+            data: {
+              labels: labels,
+              datasets: [{
+                data: values,
+                backgroundColor: [
+                  'rgba(255, 99, 132, 0.8)',
+                  'rgba(54, 162, 235, 0.8)',
+                  'rgba(255, 206, 86, 0.8)',
+                  'rgba(75, 192, 192, 0.8)',
+                  'rgba(153, 102, 255, 0.8)',
+                  'rgba(201, 203, 207, 0.8)' // 기타 항목용 색상
+                ]
+              }]
+            },
+            options: {
+              responsive: true,
+              legend: {
+                position: 'bottom'
+              },
+              title: {
+                display: true,
+                text: '고객사별 처리 건수 (상위 5개)'
+              },
+              tooltips: {
+                callbacks: {
+                  label: function(tooltipItem, data) {
+                    var dataset = data.datasets[tooltipItem.datasetIndex];
+                    var total = dataset.data.reduce(function(previousValue, currentValue) {
+                      return previousValue + currentValue;
+                    }, 0);
+                    var currentValue = dataset.data[tooltipItem.index];
+                    var percentage = Math.floor(((currentValue/total) * 100)+0.5);
+                    return data.labels[tooltipItem.index] + ': ' + currentValue + ' (' + percentage + "%)";
+                  }
+                }
+              }
+            }
+          });
+        }
+      };
+      xhr.send();
     }
   </script>
 </div>
