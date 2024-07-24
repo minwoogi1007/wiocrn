@@ -3,9 +3,9 @@
 <mapper namespace="com.wiocrm.mapper.DashboardMapper">
     <select id="findDataForCard1" resultType="com.wiocrm.model.DashboardData">
 
+        /*+ INDEX(TBND01 IDX_TBND01_IN_DATE) */
         WITH DateRanges AS (
-        SELECT
-        TRUNC(SYSDATE) AS today,
+        SELECT TRUNC(SYSDATE) AS today,
         CASE
         WHEN TO_CHAR(SYSDATE - 1, 'D') = '1' THEN TRUNC(SYSDATE) - 3
         WHEN TO_CHAR(SYSDATE - 1, 'D') = '7' THEN TRUNC(SYSDATE) - 2
@@ -23,18 +23,17 @@
         ),
         AllData AS (
         SELECT
-            <![CDATA[
-            COUNT(CASE WHEN T.IN_DATE >= dr.today THEN 1 END) AS today_count,
-        COUNT(CASE WHEN T.IN_DATE >= dr.yesterday AND T.IN_DATE < dr.today THEN 1 END) AS yesterday_count,
+        COUNT(CASE WHEN T.IN_DATE >= dr.today THEN 1 END) AS today_count,
+             <![CDATA[
+            COUNT(CASE WHEN T.IN_DATE >= dr.yesterday AND T.IN_DATE < dr.today THEN 1 END) AS yesterday_count,
         COUNT(CASE WHEN T.IN_DATE >= dr.this_month_start AND T.IN_DATE < dr.next_month_start THEN 1 END) AS this_month_count,
         COUNT(CASE WHEN T.IN_DATE >= dr.last_month_start AND T.IN_DATE < dr.this_month_start THEN 1 END) AS last_month_count
         FROM DateRanges dr
         CROSS JOIN UserInfo ui
         LEFT JOIN TBND01 T ON T.IN_DATE >= dr.last_month_start
         AND T.PRC_GUBN = '2'
-        AND (ui.POSITION <= 80 AND T.EMPNO = ui.EMPNO
-        OR ui.POSITION > 80)
-        ]]>
+        AND (ui.POSITION <= 80 AND T.EMPNO = ui.EMPNO OR ui.POSITION > 80)
+            ]]>
         )
         SELECT
         today_count AS todayCom,

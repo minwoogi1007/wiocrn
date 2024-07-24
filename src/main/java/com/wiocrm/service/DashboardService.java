@@ -7,6 +7,7 @@ import com.wiocrm.mapper.Temp01Mapper;
 import com.wiocrm.model.DashboardData;
 import com.wiocrm.model.User;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -20,6 +21,10 @@ import javax.servlet.http.HttpSession;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+
+import static com.wiocrm.controller.LoginController.logger;
 
 
 @Service
@@ -62,26 +67,38 @@ public class DashboardService {
 
         return data;
     }
-    public Map<String, Object> getDashboardData(String username,HttpServletRequest request) {
 
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        // 현재 사용자의 CustomUserDetails 객체에서 custCode 추출
-       // CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+    private User getUserFromSession(HttpServletRequest request) {
         HttpSession session = request.getSession();
-
+        return (User) session.getAttribute("user");
+    }
+    // 캐시 적용
+    @Cacheable(value = "dashboardData", key = "#username")
+    public Map<String, Object> getDashboardData(String username, HttpServletRequest request) {
         Map<String, Object> data = new HashMap<>();
-        User user = (User) session.getAttribute("user");
-    // 사용자 유형에 따른 처리
-        DashboardData card1Data = dashboardMapper.findDataForCard1(user.getUserId());//일,월  처리건
-        List<DashboardData> pointList = dashboardMapper.findPointList(user.getUserId()); //이번달 수수료
-        DashboardData avgHourlyData = dashboardMapper.findAvgHourlyData(user.getUserId()); //시간당 평균 처리건
+        User user = getUserFromSession(request);
 
-        data.put("card-data-1", card1Data);
-        data.put("pointlist-data", pointList);
-        data.put("avg-hourly-data", avgHourlyData);
+        CompletableFuture<DashboardData> card1DataFuture = CompletableFuture.supplyAsync(() ->
+                dashboardMapper.findDataForCard1(user.getUserId()));
+        CompletableFuture<List<DashboardData>> pointListFuture = CompletableFuture.supplyAsync(() ->
+                dashboardMapper.findPointList(user.getUserId()));
+        CompletableFuture<DashboardData> avgHourlyDataFuture = CompletableFuture.supplyAsync(() ->
+                dashboardMapper.findAvgHourlyData(user.getUserId()));
+
+        try {
+            data.put("card-data-1", card1DataFuture.get());
+            data.put("pointlist-data", pointListFuture.get());
+            data.put("avg-hourly-data", avgHourlyDataFuture.get());
+        } catch (InterruptedException | ExecutionException e) {
+            logger.error("Error fetching dashboard data", e);
+
+            Thread.currentThread().interrupt();
+        }
 
         return data;
     }
+
+
 
     public Map<String, Object> getDailyTasks(String username,HttpServletRequest request) {
         HttpSession session = request.getSession();

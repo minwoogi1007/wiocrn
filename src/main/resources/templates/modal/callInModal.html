@@ -1,10 +1,10 @@
 <div th:fragment="modal">
-  <div class="modal fade" id="callModal" tabindex="-1" aria-labelledby="callModalLabel" aria-hidden="true">
+  <div id="callModal" class="modal fade" tabindex="-1" aria-labelledby="callModalLabel" aria-hidden="true">
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title" id="callModalLabel">전화 수신</h5>
-          <button type="button" class="close" onclick="hideModal()" aria-label="Close">
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
             <span aria-hidden="true">&times;</span>
           </button>
         </div>
@@ -15,7 +15,8 @@
           <p><strong>고객 이름:</strong> <span id="modalPersonName"></span></p>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" onclick="hideModal()">숨기기</button>
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">숨기기</button>
+          <button type="button" class="btn btn-primary" onclick="TabManager.answerCall()">전화받기</button>
         </div>
       </div>
     </div>

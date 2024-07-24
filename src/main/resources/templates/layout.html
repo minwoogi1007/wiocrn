@@ -11,7 +11,6 @@
   <script src="https://adminlte.io/themes/v3/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
   <script src="https://adminlte.io/themes/v3/dist/js/adminlte.min.js"></script>
 
-
   <style>
     body {
       font-family: 'NanumSquare', sans-serif;
@@ -69,22 +68,25 @@
     .nav-treeview .nav-treeview > .nav-item > .nav-link {
       margin-left: 20px; /* 소메뉴 들여쓰기 */
       font-size: 12px; /* 소메뉴 폰트 사이즈 */
-    }/* 숨김 스타일 추가 */
+    }
+    /* 숨김 스타일 추가 */
     .hidden {
       position: absolute;
       left: -9999px;
       top: -9999px;
-    }.chart {
-       height: 200px;
-     }.modal-backdrop {
-        position: fixed;
-        top: 0;
-        left: 0;
-        z-index: 1040;
-        width: 100vw;
-        height: 100vh;
-        background-color: rgba(0, 0, 0, 0.5);
-      }
+    }
+    .chart {
+      height: 200px;
+    }
+    .modal-backdrop {
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 1040;
+      width: 100vw;
+      height: 100vh;
+      background-color: rgba(0, 0, 0, 0.5);
+    }
 
     .modal-open .modal {
       overflow-x: hidden;
@@ -161,7 +163,7 @@
 <body class="hold-transition sidebar-mini layout-fixed">
 <div class="wrapper">
 
-  <div  id="header-container" th:replace="~{header :: header}"></div>
+  <div id="header-container" th:replace="~{header :: header}"></div>
 
   <aside class="main-sidebar sidebar-dark-primary elevation-4" id="sidebar">
     <div class="sidebar">
@@ -174,10 +176,13 @@
   </aside>
 
   <div class="content-wrapper">
-
-
     <div class="content" id="content-placeholder">
-      <!-- 기본 콘텐츠가 여기에 로드됩니다 -->
+      <!-- 여기에 탭 컨테이너를 추가합니다 -->
+      <div id="tab-container">
+        <ul class="nav nav-tabs" id="myTabs" role="tablist"></ul>
+        <div class="tab-content" id="myTabContent"></div>
+      </div>
+      <!-- 기존 콘텐츠는 탭 내부나 탭 컨테이너 아래에 위치할 수 있습니다 -->
     </div>
   </div>
 
@@ -185,6 +190,7 @@
     <strong>&copy; 2024 WIO. All rights reserved.</strong>
   </footer>
 </div>
+
 <!-- Include Modal HTML -->
 <div th:replace="modal/callInModal :: modal"></div>
 
@@ -212,19 +218,12 @@
     }
 
     function createMenu(menuData) {
-      //console.log('Menu Data:', menuData);  // 데이터가 제대로 들어오는지 확인
-
       var menuHtml = '';
       var topMenus = menuData.filter(function(menu) {
-        //console.log('Filtering Top Menus:', menu);  // 최상위 메뉴 필터링
-        return menu.MENU_REF === 0;  // '0'이 아니라 숫자 0을 사용
+        return menu.MENU_REF === 0;
       });
 
-      //console.log('Top Menus:', topMenus);  // 필터링된 최상위 메뉴 확인
-
       topMenus.forEach(function(topMenu) {
-        //console.log('Processing Top Menu:', topMenu);  // 각 최상위 메뉴 처리
-
         menuHtml += '<li class="nav-item has-treeview">' +
                 '<a href="#" class="nav-link top-menu">' +
                 '<i class="nav-icon ' + getIconClass(topMenu.MENU_NM) + '"></i>' +
@@ -233,15 +232,10 @@
                 '<ul class="nav nav-treeview">';
 
         var midMenus = menuData.filter(function(menu) {
-          //console.log('Filtering Mid Menus for', topMenu.MENU_CD, ':', menu);  // 중간 메뉴 필터링
           return menu.MENU_REF === topMenu.MENU_CD;
         });
 
-        //console.log('Mid Menus for', topMenu.MENU_CD, ':', midMenus);  // 중간 메뉴 확인
-
         midMenus.forEach(function(midMenu) {
-          //console.log('Processing Mid Menu:', midMenu);  // 각 중간 메뉴 처리
-
           menuHtml += '<li class="nav-item has-treeview">' +
                   '<a href="#" class="nav-link mid-menu">' +
                   '<p>' + midMenu.MENU_NM + '<i class="right fas fa-angle-left"></i></p>' +
@@ -249,15 +243,10 @@
                   '<ul class="nav nav-treeview">';
 
           var lowMenus = menuData.filter(function(menu) {
-            //console.log('Filtering Low Menus for', midMenu.MENU_CD, ':', menu);  // 하위 메뉴 필터링
             return menu.MENU_REF === midMenu.MENU_CD;
           });
 
-          //console.log('Low Menus for', midMenu.MENU_CD, ':', lowMenus);  // 하위 메뉴 확인
-
           lowMenus.forEach(function(lowMenu) {
-            //console.log('Processing Low Menu:', lowMenu);  // 각 하위 메뉴 처리
-
             menuHtml += '<li class="nav-item">' +
                     '<a href="#" class="nav-link low-menu" data-url="' + lowMenu.PROG_NM + '">' +
                     '<p>' + lowMenu.MENU_NM + '</p>' +
@@ -273,7 +262,6 @@
                 '</li>';
       });
 
-      //console.log('Generated Menu HTML:', menuHtml);  // 생성된 HTML 확인
       $('#dynamic-menu').html(menuHtml);
     }
 
@@ -326,9 +314,18 @@
       }
     });
   });
-
-
 </script>
+<script src="/js/tab-manager.js"></script>
 
+<script>
+  window.addEventListener('load', function() {
+    console.log('페이지 로드 완료');
+    if (window.TabManager && typeof TabManager.initTabManager === 'function') {
+      TabManager.initTabManager();
+    } else {
+      console.error('TabManager가 제대로 로드되지 않았거나 initTabManager 함수를 찾을 수 없습니다.');
+    }
+  });
+</script>
 </body>
 </html>

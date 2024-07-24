@@ -18,7 +18,7 @@ import org.slf4j.LoggerFactory;
 @Controller
 public class LoginController {
 
-    private static final Logger logger = LoggerFactory.getLogger(LoginController.class);
+    public static final Logger logger = LoggerFactory.getLogger(LoginController.class);
 
     @Autowired
     private CustomUserDetailsService userDetailsService;
@@ -27,7 +27,10 @@ public class LoginController {
     public String log() {
         return "login";
     }
-
+    @GetMapping("/hidden-tetris")
+    public String hiddenTetris() {
+        return "hidden-tetris";
+    }
     @GetMapping("/login")
     public String login(@RequestParam(value = "error", required = false) String error, Model model) {
         if (error != null) {
