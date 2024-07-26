@@ -1,80 +1,73 @@
-/* 기본 스타일 리셋 */
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
-
-html, body {
-    height: 100%;
-    font-family: 'Nanum Gothic', sans-serif; /* 네이버 폰트 */
-}
-
-.header {
+.wrapper {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background-color: #f8f9fa;
+    width: 100%;
+    align-items: stretch;
+}
+
+#sidebar {
+    min-width: 250px;
+    max-width: 250px;
+    min-height: 100vh;
+    background: #7386D5;
+    color: #fff;
+    transition: all 0.3s;
+}
+
+#sidebar.active {
+    margin-left: -250px;
+}
+
+#sidebar .sidebar-header {
+    padding: 20px;
+    background: #6d7fcc;
+}
+
+#sidebar ul.components {
+    padding: 20px 0;
+    border-bottom: 1px solid #47748b;
+}
+
+#sidebar ul p {
+    color: #fff;
     padding: 10px;
-    border-bottom: 1px solid #dee2e6;
 }
 
-.header .toggle-sidebar {
-    cursor: pointer;
-}
-
-.sidebar {
-    width: 200px;
-    background-color: #f1f1f1;
-    height: 100%;
-    overflow: auto;
-    position: fixed;
-    transition: width 0.2s;
-}
-
-.sidebar.hidden {
-    width: 0;
-    overflow: hidden;
-}
-
-.sidebar ul {
-    list-style: none;
-    padding: 0;
-}
-
-.sidebar ul li {
+#sidebar ul li a {
     padding: 10px;
-    border-bottom: 1px solid #ddd;
-}
-
-.sidebar ul li a {
-    color: #333;
-    text-decoration: none;
+    font-size: 1.1em;
     display: block;
 }
 
-.sidebar ul li a:hover,
-.sidebar ul li a.active {
-    background-color: #00c0ef;
+#sidebar ul li a:hover {
+    color: #7386D5;
+    background: #fff;
+}
+
+#sidebar ul li.active > a, a[aria-expanded="true"] {
     color: #fff;
+    background: #6d7fcc;
 }
 
-.main-content {
-    margin-left: 200px;
-    padding: 20px;
-    transition: margin-left 0.2s;
-}
-
-.sidebar.hidden + .main-content {
-    margin-left: 0;
-}
-
-footer {
-    background-color: #f8f9fa;
-    padding: 10px;
-    text-align: center;
-    border-top: 1px solid #dee2e6;
-    position: fixed;
-    bottom: 0;
+#content {
     width: 100%;
+    padding: 20px;
+    min-height: 100vh;
+    transition: all 0.3s;
+}
+
+.dropdown-toggle::after {
+    display: block;
+    position: absolute;
+    top: 50%;
+    right: 20px;
+    transform: translateY(-50%);
+}
+
+@media (max-width: 768px) {
+    #sidebar {
+        margin-left: -250px;
+    }
+    #sidebar.active {
+        margin-left: 0;
+    }
 }

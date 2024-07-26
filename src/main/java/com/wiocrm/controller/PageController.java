@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
@@ -152,4 +153,13 @@ public class PageController {
         return "fragments/unreceived_status :: content";
     }
 
+    @GetMapping("/consultation-registration")
+    public String consultationRegistration(@RequestParam String pNo, @RequestParam String cNo,
+                                           @RequestParam String projectName, @RequestParam String personName, Model model) {
+        model.addAttribute("pNo", pNo);
+        model.addAttribute("cNo", cNo);
+        model.addAttribute("projectName", projectName);
+        model.addAttribute("personName", personName);
+        return "fragments/consultation-template :: content";
+    }
 }

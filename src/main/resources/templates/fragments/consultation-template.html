@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>상담 등록</title>
+    <link rel="stylesheet" href="https://adminlte.io/themes/v3/plugins/fontawesome-free/css/all.min.css">
+    <link rel="stylesheet" href="https://adminlte.io/themes/v3/dist/css/adminlte.min.css">
+</head>
+<body>
+<div class="content-wrapper">
+    <div class="content">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-lg-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">상담 정보</h3>
+                        </div>
+                        <div class="card-body">
+                            <p>내선 번호: <span th:text="${pNo}"></span></p>
+                            <p>전화 번호: <span th:text="${cNo}"></span></p>
+                            <p>프로젝트: <span th:text="${projectName}"></span></p>
+                            <p>고객 이름: <span th:text="${personName}"></span></p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">상담 내용</h3>
+                        </div>
+                        <div class="card-body">
+                            <textarea class="form-control" rows="5" placeholder="상담 내용을 입력하세요..."></textarea>
+                            <button class="btn btn-primary mt-2 save-btn">저장</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

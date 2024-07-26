@@ -159,7 +159,7 @@
       </div>
       <div class="col-md-3">
         <div class="card visits">
-          <h5>이번달 수수료</h5>
+          <h5>이번달 마일리지</h5>
           <div class="value" id="currentFee"></div>
           <p class="small-text" id="previousFee"> <i class="fas " id="changeIcon"></i>   </p>
           <div class="change" id="changePercentage"></div>
@@ -182,14 +182,14 @@
         <div class="col-md-12">
           <div class="card shadow-sm">
             <div class="card-header bg-primary text-white">
-              <h3 class="card-title mb-0">업체 수수료 요약</h3>
+              <h3 class="card-title mb-0">업체 마일리지 요약</h3>
             </div>
             <div class="card-body">
               <div class="row">
                 <div class="col-md-3">
                   <div class="info-box bg-light">
                     <div class="info-box-content">
-                      <span class="info-box-text">오늘 수수료</span>
+                      <span class="info-box-text">오늘 마일리지</span>
                       <span class="info-box-number" id="todayCompanyFee"></span>
                     </div>
                   </div>
@@ -197,7 +197,7 @@
                 <div class="col-md-3">
                   <div class="info-box bg-light">
                     <div class="info-box-content">
-                      <span class="info-box-text">이번달 수수료</span>
+                      <span class="info-box-text">이번달 마일리지</span>
                       <span class="info-box-number" id="thisMonthCompanyFee"></span>
                     </div>
                   </div>
@@ -205,7 +205,7 @@
                 <div class="col-md-3">
                   <div class="info-box bg-light">
                     <div class="info-box-content">
-                      <span class="info-box-text">전달 같은 일자까지 수수료 </span>
+                      <span class="info-box-text">전달 같은 일자까지 마일리지 </span>
                       <span class="info-box-number" id="lastMonthTodayCompanyFee"></span>
                     </div>
                   </div>
@@ -213,7 +213,7 @@
                 <div class="col-md-3">
                   <div class="info-box bg-light">
                     <div class="info-box-content">
-                      <span class="info-box-text">전달 수수료</span>
+                      <span class="info-box-text">전달 마일리지</span>
                       <span class="info-box-number" id="lastMonthCompanyFee"></span>
                     </div>
                   </div>
@@ -223,7 +223,7 @@
                 <div class="col-md-4">
                   <div class="info-box bg-info text-white">
                     <div class="info-box-content">
-                      <span class="info-box-text">이번달 예상 수수료(주말 제외)</span>
+                      <span class="info-box-text">이번달 예상 마일리지(주말 제외)</span>
                       <span class="info-box-number" id="estimatedMonthTotal"></span>
                     </div>
                   </div>
@@ -231,7 +231,7 @@
                 <div class="col-md-4">
                   <div class="info-box bg-success text-white">
                     <div class="info-box-content">
-                      <span class="info-box-text">평균 수수료</span>
+                      <span class="info-box-text">평균 마일리지</span>
                       <span class="info-box-number" id="dailyAverage"></span>
                     </div>
                   </div>
@@ -621,7 +621,7 @@
           $('#lastMonthCompanyFee').text(formatCurrency(data.LASTMONTHCOMPANYFEE));
         },
         error: function(error) {
-          console.error('업체 수수료 요약 데이터 로드 실패:', error);
+          console.error('업체 마일리지 요약 데이터 로드 실패:', error);
         }
       });
     }

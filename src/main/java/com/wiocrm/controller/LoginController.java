@@ -31,6 +31,10 @@ public class LoginController {
     public String hiddenTetris() {
         return "hidden-tetris";
     }
+    @GetMapping("/hidden-rhythm")
+    public String rhythm() {
+        return "rhythm";
+    }
     @GetMapping("/login")
     public String login(@RequestParam(value = "error", required = false) String error, Model model) {
         if (error != null) {

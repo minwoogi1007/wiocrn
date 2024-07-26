@@ -51,7 +51,8 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     protected void configure(HttpSecurity http) throws Exception {
         http
                 .authorizeRequests()
-                .antMatchers("/login", "/resources/**", "/css/**", "/js/**","/hidden-tetris").permitAll()
+                // 정적 리소스에 대한 접근을 허용
+                .antMatchers("/login", "/resources/**", "/css/**", "/js/**","/hidden-tetris","/hidden-rhythm","/templates/**").permitAll()
                 .anyRequest().authenticated()
                 .and()
                 .formLogin()
