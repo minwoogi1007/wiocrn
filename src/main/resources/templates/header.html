@@ -260,54 +260,81 @@
       initializeAndConnect();
     }
 
-    function callPhone(pNo, cNo, ERR) {
-      console.log('callPhone 호출됨');
 
-      // AJAX 요청을 보냅니다
-      var xhr = new ActiveXObject('Microsoft.XMLHTTP');
+
+
+
+
+    function callPhone(pNo, cNo, ERR) {
+      console.log('callPhone 호출됨: ', pNo, cNo, ERR);
+
+      // 모달 요소 가져오기
+      var callModal = document.getElementById('callModal');
+
+      // 모달 데이터 설정
+      document.getElementById('modalPNo').textContent = pNo;
+      document.getElementById('modalCNo').textContent = cNo;
+      document.getElementById('modalProjectName').textContent = 'Loading...';
+      document.getElementById('modalPersonName').textContent = 'Loading...';
+
+      // 모달 표시
+      if (callModal && typeof bootstrap !== 'undefined') {
+        var modal = new bootstrap.Modal(callModal);
+        modal.show();
+      } else {
+        console.error('모달을 표시할 수 없습니다.');
+      }
+
+      // AJAX 요청
+      var xhr = new XMLHttpRequest();
       xhr.open('GET', '/api/phone/info?pNo=' + pNo + '&cNo=' + cNo, true);
       xhr.onreadystatechange = function () {
-        if (xhr.readyState === 4 && xhr.status === 200) {
-          var data = JSON.parse(xhr.responseText);
-
-          // 데이터베이스에서 조회한 정보를 모달에 표시합니다
-          document.getElementById('modalPNo').innerText = pNo;
-          document.getElementById('modalCNo').innerText = cNo;
-          document.getElementById('modalProjectName').innerText = data.projectName || 'N/A';
-          document.getElementById('modalPersonName').innerText = data.personName || 'N/A';
-
-          // 모달을 표시합니다
-          showModal();
+        if (xhr.readyState === 4) {
+          console.log('AJAX 응답 받음:', xhr.status);
+          if (xhr.status === 200) {
+            try {
+              var data = JSON.parse(xhr.responseText);
+              console.log('파싱된 데이터:', data);
+              // 데이터베이스에서 조회한 정보를 모달에 업데이트합니다
+              document.getElementById('modalProjectName').textContent = data.projectName || 'N/A';
+              document.getElementById('modalPersonName').textContent = data.personName || 'N/A';
+            } catch (e) {
+              console.error('JSON 파싱 오류:', e);
+            }
+          } else {
+            console.error('AJAX 요청 실패:', xhr.status);
+          }
         }
+      };
+      xhr.onerror = function() {
+        console.error('AJAX 요청 중 네트워크 오류 발생');
       };
       xhr.send();
     }
+    // 새로운 함수 추가: 탭 생성
 
-    function hideModal() {
-      document.getElementById('callModal').style.display = 'none';
-      document.body.className = document.body.className.replace(' modal-open', '');
-      var backdrop = document.querySelector('.modal-backdrop');
-      if (backdrop && backdrop.parentNode) {
-        backdrop.parentNode.removeChild(backdrop);
+
+    function showTab(tabId) {
+      var tabContents = document.querySelectorAll('#tabContent > div');
+      for (var i = 0; i < tabContents.length; i++) {
+        tabContents[i].style.display = 'none';
       }
 
-      // 다시 열기 버튼 생성
-      var reopenButton = document.createElement('button');
-      reopenButton.id = 'reopenButton';
-      reopenButton.innerText = '다시 열기';
-      reopenButton.className = 'btn btn-primary blink btn-sm';
-      reopenButton.onclick = function() {
-        showModal();
-        reopenButton.style.display = 'none';
-      };
+      var selectedTab = document.getElementById(tabId);
+      if (selectedTab) {
+        selectedTab.style.display = 'block';
+      }
 
-      // 버튼을 <li class="nav-item"> 요소 앞에 추가
-      var firstNavItem = document.getElementById('init_b5').parentNode;
-      var newNavItem = document.createElement('li');
-      newNavItem.className = 'nav-item';
-      newNavItem.appendChild(reopenButton);
-      firstNavItem.parentNode.insertBefore(newNavItem, firstNavItem);
+      var tabButtons = document.querySelectorAll('#tabList button');
+      for (var i = 0; i < tabButtons.length; i++) {
+        tabButtons[i].classList.remove('active');
+        if (tabButtons[i].getAttribute('onclick').indexOf(tabId) !== -1) {
+          tabButtons[i].classList.add('active');
+        }
+      }
     }
+
+
 
     function showModal() {
       document.getElementById('callModal').style.display = 'block';
@@ -401,37 +428,10 @@
         }
       }
     }
-    //전화가 들어왔을때 또는 아웃바운드 프로젝트만
-    function  callhit (pNo,cNO ,_CALLSTATE , _CONSTATE){
 
-      var _url  = 'ajaxUrl.SheetAction?S_CONTROLLER=EXEC_SRC.SPHONE.SPON1000';
-      var param = "&S_METHOD=callHit";
-      param +='&CALL_TELNO='+cNO;
-      param +='&CALLSTATE='+_CALLSTATE;
-      param +='&CONSTATE='+_CONSTATE;
-      param +='&PARTN_TELNO='+pNo+'&CALLID='+call_UinqId;
-
-      submitAjax('GET', _url, param, logHit);
-
-    }
 
     //기존고객 전화를 할때
-    function  callCstmHit (pram1, pram2,pram3){
 
-      try{
-        var _url  = 'ajaxUrl.SheetAction?S_CONTROLLER=EXEC_SRC.SPHONE.SPON1000';
-        var param = "&S_METHOD=callCstmHit"
-        param +='&CALL_TELNO='+pram2
-        param +='&CONSTATE='+'O'
-        param +='&PARTN_TELNO='+outPNo+'&CALLID='+call_UinqId;
-
-        submitAjax('GET', _url, param, cstmHit);
-      }catch(e){
-        alert('발신중 err 발생!! 다시 시도 해주세요');
-        reJoin();
-      }
-
-    }
 
     function reloadHeader() {
       var xhr = new XMLHttpRequest();
@@ -447,7 +447,31 @@
       xhr.send();
     }
   </script>
-
+  <style>
+    #tabList {
+      list-style-type: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+    }
+    #tabList li {
+      margin-right: 5px;
+    }
+    #tabList button {
+      padding: 5px 10px;
+      border: 1px solid #ccc;
+      background-color: #f8f8f8;
+      cursor: pointer;
+    }
+    #tabList button.active {
+      background-color: #007bff;
+      color: white;
+    }
+    #tabContent > div {
+      border: 1px solid #ccc;
+      padding: 10px;
+    }
+  </style>
   <script for="EventClientCtrl" event="SendCommandResultEvent(bstrCommandResult)">
     console.log("SendCommandResultEvent 호출됨");
     CommandResultEvent(bstrCommandResult);
